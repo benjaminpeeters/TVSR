@@ -1,3 +1,7 @@
+# estim =SRlocal(Y,W, nstep=5)
+# plot(as.POSIXct(colnames(Y)[estim$time]), estim$rho, type='l')
+
+
 
 
 multiloglik <- function(Y, W, sample)

@@ -86,7 +86,7 @@ SRllstatic2W_2 <- function(Y, w1, w2, X=NULL,  kernel='uniform', option='estimat
 		parent.frame())
 	}
 	
-	mc.cores = detectCores()
+	mc.cores = parallel::detectCores()
 	
 	funOptim <- function(omegaRho_gamma){
 		funOptim= 1e+5
@@ -132,7 +132,7 @@ SRllstatic2W_2 <- function(Y, w1, w2, X=NULL,  kernel='uniform', option='estimat
 		i=i+1
 		par[i,1] = sample$omegaRho[iOR]; 	par[i,2] = sample$gamma[iGA]
 	}}
-	mc.cores = detectCores() 
+	mc.cores = parallel::detectCores() 
 	
 	newpar = as.list(as.data.frame(t(par)))
 	multiloglikf = - mcmapply(FUN=funOptim, newpar, mc.cores = mc.cores)
@@ -208,7 +208,7 @@ SRlocal2W <- function(Y, W1, W2, X=NULL, nstep=11, muGam=0, df=NULL, option="est
 	II = (no2+1):(dim(Y)[2] - no2)
 	lII = length(II)
 	
-	mc.cores = detectCores() 
+	mc.cores = parallel::detectCores() 
 	
 	if(option=="estimation"){
 		if(verbose){cat(" ## (LKSR) LOCAL KERNEL-WEIGHTED SPATIAL REGRESSION ## \n",sep="\t");}

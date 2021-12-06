@@ -124,7 +124,7 @@ SRllstatic <- function(Y, w, X=NULL, df=NULL, kernel='uniform', option='estimati
 		parent.frame())
 	}
 	
-	mc.cores = detectCores()
+	mc.cores = parallel::detectCores()
 	
 	funOptim <- function(omegaRho){
 		funOptim= 1e+5
@@ -223,7 +223,7 @@ SRllstatic <- function(Y, w, X=NULL, df=NULL, kernel='uniform', option='estimati
 #' fac2num(x)
 #'
 #' @export
-SRlocal <- function(Y, W, X=NULL, nstep, df=NULL, option="estimation", kernel="uniform", verbose = TRUE)
+SRlocal <- function(Y, W, X=NULL, nstep, df=NULL, option="estimation", kernel="epanechnikov", verbose = TRUE)
 {
 	
 	if(nstep %% 2 == 0){ stop("nstep is not a odd number");}
@@ -238,7 +238,7 @@ SRlocal <- function(Y, W, X=NULL, nstep, df=NULL, option="estimation", kernel="u
 	II = (no2+1):(dim(Y)[2] - no2)
 	lII = length(II)
 	
-	mc.cores = detectCores() 
+	mc.cores = parallel::detectCores() 
 	
 	if(option=="estimation"){
 		if(verbose){cat(" ## (LKSR) LOCAL KERNEL-WEIGHTED SPATIAL REGRESSION ## \n",sep="\t");}

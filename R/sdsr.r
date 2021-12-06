@@ -179,7 +179,7 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 		return(funOptim)
 	}
 	
-	mc.cores = detectCores() 
+	mc.cores = parallel::detectCores() 
 	
 	# ======================================================================
 	# ======================================================================
@@ -366,7 +366,7 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 		par[i,11] = sample$bTrd[iBT]; 		par[i,12] = sample$f1Trd[iF1T]
 	}}}}  }}}}	}}}}
 	
-	mc.cores = detectCores() 
+	mc.cores = parallel::detectCores() 
 	
 	
 	newpar = as.list(as.data.frame(t(par)))
@@ -650,7 +650,7 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 	}
 	
 	
-	mc.cores = detectCores() 
+	mc.cores = parallel::detectCores() 
 	
 	funOptim <- function(X){
 		funOptim= 1e+5
@@ -731,7 +731,7 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 		par[i,3] = sample$bRho[iBR]; 		par[i,4] = sample$f1Rho[iF1R] 
 	}}}} 
 	
-	mc.cores = detectCores() 
+	mc.cores = parallel::detectCores() 
 	
 	newpar = as.list(as.data.frame(t(par)))
 	multiloglikf = - pbmcmapply(FUN=funOptim, newpar, mc.cores=mc.cores)
