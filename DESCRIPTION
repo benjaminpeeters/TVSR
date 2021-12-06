@@ -1,0 +1,19 @@
+Package: TVSR
+Title: Codes for Time-Varying Spatial Regression Estimations
+Version: 0.1
+Authors@R: 
+    person("Benjamin", "Peeters", , "benjaminpeeters@protonmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-5095-2021"))
+Description: The package includes two main functions to estimate time-varying spatial regression models. The first performs the Local-Kernel Spatial Regression (LKSR), a semi-parametric estimation procedure based on local maximization of a log-likelihood function. The second method is the Score-Driven Spatial Regression (SDSR), which implements a score-driven approach (Based on Blasquez, 2016). Initially, these programs were coded to assess international monetary spillovers between 1980 and 2020. The reference paper is Peeters, Girard and Gnabo (forthcoming). 
+Author: Benjamin M J Peeters [aut, cre] (<https://orcid.org/0000-0002-5095-2021>) 
+Maintainer: Benjamin M J Peeters <benjaminpeeters@protonmail.com>
+License: GPL-3
+Encoding: UTF-8
+Depends:
+    R (>= 3.5.0)
+URL: https://github.com/benjaminpeeters/TVSR
+BugReports: https://github.com/benjaminpeeters/TVSR/issues
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+ByteCompile: true
+LazyData: true
