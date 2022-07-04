@@ -1,7 +1,8 @@
 # library(mvbutils)
 # foodweb()
 
-#	SSIM
+
+
 
 # Notations:
 # 	Y = output matrix (# countries x # time periods)
@@ -17,24 +18,7 @@
 #libraries:
 #- source("SSIM.r")
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
-#' @export
-Z <- function(rho, w)
-{
-	Z = solve(diag(nrow(w)) - rho*w)
-}
+
 
 # normalizationMatrix
 #' Convert a factor to numeric
@@ -49,7 +33,7 @@ Z <- function(rho, w)
 #' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
 #' fac2num(x)
 #'
-#' @export
+#' @noRd
 K <- function(x,c=0,bw=1)
 {
 	x = (c-x)/bw
@@ -58,74 +42,36 @@ K <- function(x,c=0,bw=1)
 	return(epa)
 }
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
-#' @export
-pause = function(){
-    if (interactive()){
-        invisible(readline(prompt = "Press <Enter> to continue..."))
-    }else{
-        cat("Press <Enter> to continue...")
-        invisible(readLines(file("stdin"), 1))
-    }
-}
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
-#' @export
-h <- function(ft, deriv=FALSE)
-{	
-	# /!\ Here Ft can be both Ft or ft
-	if (deriv==FALSE){
-		h = tanh(ft)
-	}else if(deriv==TRUE){
-		# if h(ft) = gamma * tanh(ft) with gamma \in (0,1)
-		# then h'(ft) = gamma * (1 - tanh²(ft))
-		h = (1 - tanh(ft)^2)
-	}
-	return(h)
-}
-
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
-#' @export
-hinv <- function(rho)
+lineComment <- function(string=NULL)
 {
-	ft = atanh(rho)
+	line = "##########################################################################"
+	if(!is.null(string)){
+		nchar = nchar(line)
+		nstri = nchar(string)
+		
+		a <- if ( nstri%%2 == 0  ) (nchar -nstri)/2-1 else floor((nchar -nstri)/2)-1
+		b <- a + 1 + nstri + 2
+		
+		cat(paste(substr(line,1,a), string, substr(line,b,nchar),'\n', sep=' '))
+	}else{
+		cat(paste(line,'\n', sep=' '))
+	}
 }
+
+
+step <- function(TITLE){
+	eval(
+		if(verbose){
+			cat("###############################################################\n")
+			cat(" ")
+			cat(TITLE)
+			cat(" \n")
+			cat("###############################################################\n")
+		},
+	parent.frame())
+}
+
 
 # normalizationMatrix
 #' Convert a factor to numeric

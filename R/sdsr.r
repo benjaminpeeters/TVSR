@@ -12,7 +12,59 @@
 #' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
 #' fac2num(x)
 #'
-#' @export
+#' @noRd
+h <- function(ft, deriv=FALSE)
+{	
+	# /!\ Here Ft can be both Ft or ft
+	if(!deriv){
+		h = tanh(ft)
+	}else if(deriv){
+		# if h(ft) = gamma * tanh(ft) with gamma \in (0,1)
+		# then h'(ft) = gamma * (1 - tanh²(ft))
+		h = (1 - tanh(ft)^2)
+	}
+	return(h)
+}
+
+# normalizationMatrix
+#' Convert a factor to numeric
+#'
+#' Convert a factor with numeric levels to a non-factor
+#'
+#' @param x A vector containing a factor with numeric levels
+#'
+#' @return The input factor made a numeric vector
+#'
+#' @examples
+#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
+#' fac2num(x)
+#'
+#' @noRd
+hinv <- function(rho)
+{
+	ft = atanh(rho)
+}
+
+
+	Z <- function(rho, w)
+	{
+		Z = solve(diag(nrow(w)) - rho*w)
+	}
+
+# normalizationMatrix
+#' Convert a factor to numeric
+#'
+#' Convert a factor with numeric levels to a non-factor
+#'
+#' @param x A vector containing a factor with numeric levels
+#'
+#' @return The input factor made a numeric vector
+#'
+#' @examples
+#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
+#' fac2num(x)
+#'
+#' @noRd
 loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4), 
 									omegaVar=0, aVar=0.01, bVar=0.8, f1Var=log(1), 
 									omegaTrd=0, aTrd=0.01, bTrd=0.8, f1Trd=0,
@@ -88,10 +140,12 @@ loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh
 }
 
 
-# normalizationMatrix
+
+# SRllTV
 #' Convert a factor to numeric
 #'
 #' Convert a factor with numeric levels to a non-factor
+#' SDSR = SRllTV using a 'conditional' (based on analytical results) loglikelihood functio to faster the process.
 #'
 #' @param x A vector containing a factor with numeric levels
 #'
@@ -101,7 +155,7 @@ loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh
 #' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
 #' fac2num(x)
 #'
-#' @export
+#' @noRd
 SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 {		
 	
@@ -216,7 +270,7 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 	}
 	
 	par = as.list(as.data.frame(t(sampleOmegaRho)))
-	multiloglikf = - pbmcmapply(FUN=SUBfunOptim, par, mc.cores = mc.cores)
+	multiloglikf = - parallel::mcmapply(FUN=SUBfunOptim, par, mc.cores = mc.cores)
 	
 	im = which.max(multiloglikf)
 	omegaRho = sampleOmegaRho[im]
@@ -314,7 +368,7 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 		return(a) 
 	}
 	
-	static = SRllstatic(Y[,seq(1:10)],w, verbose=FALSE)
+	static = SRstatic(Y[,seq(1:10)],w, verbose=0)
 	
 	f1Rho = static$RHO[1]
 	
@@ -495,6 +549,7 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 }
 
 
+
 # normalizationMatrix
 #' Convert a factor to numeric
 #'
@@ -508,10 +563,12 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 #' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
 #' fac2num(x)
 #'
-#' @export
-loglikTVRhoCond <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4),
-							density= "normal", result="loglik")
+#' @noRd
+loglikTVRhoCond <- function(Y, w, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4), result="loglik")
 {
+	
+	# compute Z matrix: Z = (I - rho W)^-1
+	
 	# /!\ Here Y must be the matrix Y 
 	Nt = ncol(Y); Nc = nrow(Y)
 	
@@ -523,62 +580,57 @@ loglikTVRhoCond <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0
 	
 	RES <- matrix(rep(NA, Nt*Nc), ncol=Nt)
 	
-	if(density == "normal"){
+	###############################################
 		
 		
-		t=1
+	t=1
+	
+	n = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w)%*%Y[,t] )
+	d = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w) )
+	TRD[t] = n/d
+	
+	RES[,t] = Y[,t] - t(RHO[t]*t(w%*%Y[,t])) - (In - RHO[t]*w)%*%(TRD[t]*Vecn)
+	
+	VAR[t] = mean((RES[,t])^2)
+	
+	# loglik = log(det(In - RHO[t]*w)) - 0.5*log(det(VAR[t]*In)) - 0.5*sum(d^2)/VAR[t]
+	loglik = 0 # afin de ne pas compter la première période dans l'évaluation de la loglik
+	
+	for(t in 2:Nt){ 
+		
+		# RHO
+		
+		fRhot_1 = hinv(RHO[t-1])
+		
+		Z = solve(In - RHO[t-1]*w)
+		sRhot_1 = ( (t(Y[,t-1])%*%t(w) - t( (In - RHO[t-1]*w)%*%(TRD[t-1]*Vecn) ) )%*%RES[,t-1]/VAR[t-1] +
+				- sum(diag(Z%*%w)) )*h(fRhot_1, deriv=TRUE)
+		
+		RHO[t] = h( omegaRho + aRho*sRhot_1 + bRho*fRhot_1 )
+		
+		
+		# TRD	
 		
 		n = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w)%*%Y[,t] )
 		d = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w) )
 		TRD[t] = n/d
 		
+		# RESIDUALS
+		
 		RES[,t] = Y[,t] - t(RHO[t]*t(w%*%Y[,t])) - (In - RHO[t]*w)%*%(TRD[t]*Vecn)
 		
+		# VAR
 		VAR[t] = mean((RES[,t])^2)
 		
-		# loglik = log(det(In - RHO[t]*w)) - 0.5*log(det(VAR[t]*In)) - 0.5*sum(d^2)/VAR[t]
-		loglik = 0 # afin de ne pas compter la première période dans l'évaluation de la loglik
-		
-		for(t in 2:Nt){ 
-			
-			# RHO
-			
-			fRhot_1 = hinv(RHO[t-1])
-			
-			Z = solve(In - RHO[t-1]*w)
-			sRhot_1 = ( (t(Y[,t-1])%*%t(w) - t( (In - RHO[t-1]*w)%*%(TRD[t-1]*Vecn) ) )%*%RES[,t-1]/VAR[t-1] +
-					- sum(diag(Z%*%w)) )*h(fRhot_1, deriv=TRUE)
-			
-			RHO[t] = h( omegaRho + aRho*sRhot_1 + bRho*fRhot_1 )
-			
-			
-			# TRD	
-			
-			n = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w)%*%Y[,t] )
-			d = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w) )
-			TRD[t] = n/d
-			
-			# RESIDUALS
-			
-			RES[,t] = Y[,t] - t(RHO[t]*t(w%*%Y[,t])) - (In - RHO[t]*w)%*%(TRD[t]*Vecn)
-			
-			# VAR
-			VAR[t] = mean((RES[,t])^2)
-			
-			# loglik 
-			if(t>=1){ # afin de ne pas compter les 3 premieres périodes
-				loglik = loglik + log(det(In - RHO[t]*w)) - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
-			}
-			
+		# loglik 
+		if(t>=1){ # afin de ne pas compter les 3 premieres périodes
+			loglik = loglik + log(det(In - RHO[t]*w)) - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
 		}
 		
-		loglik = loglik - 0.5*nrow(Y)*Nt*log(2*pi)
-		
-	}else if(density == "student"){
-		loglik = 0
-	}else{
-		loglik = 0
 	}
+	
+	loglik = loglik - 0.5*nrow(Y)*Nt*log(2*pi)
+
 	
 	# output
 	if(result=="loglik"){
@@ -603,20 +655,110 @@ loglikTVRhoCond <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0
 #' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
 #' fac2num(x)
 #'
+#' @noRd
+loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4), result="loglik")
+{
+	
+	# compute Z matrix: Z = (I - rho W)^-1
+	
+	# /!\ Here Y must be the matrix Y 
+	Nt = ncol(Y); Nc = nrow(Y)
+	
+	In = diag(Nc); Vecn = rep(1,Nc)
+	
+	RHO <- rep(NA, Nt); RHO[1] = h(f1Rho)
+	VAR <- rep(NA, Nt); 
+	TRD <- rep(NA, Nt); 
+	
+	RES <- matrix(rep(NA, Nt*Nc), ncol=Nt)
+	
+	###############################################
+		
+		
+	t=1
+	
+	n = sum( t(In - RHO[t]*W[[t]])%*%(In - RHO[t]*W[[t]])%*%Y[,t] )
+	d = sum( t(In - RHO[t]*W[[t]])%*%(In - RHO[t]*W[[t]]) )
+	TRD[t] = n/d
+	
+	RES[,t] = Y[,t] - t(RHO[t]*t(W[[t]]%*%Y[,t])) - (In - RHO[t]*W[[t]])%*%(TRD[t]*Vecn)
+	
+	VAR[t] = mean((RES[,t])^2)
+	
+	# loglik = log(det(In - RHO[t]*w)) - 0.5*log(det(VAR[t]*In)) - 0.5*sum(d^2)/VAR[t]
+	loglik = 0 # afin de ne pas compter la première période dans l'évaluation de la loglik
+	
+	for(t in 2:Nt){ 
+		
+		w = W[[t]]
+		# RHO
+		
+		fRhot_1 = hinv(RHO[t-1])
+		
+		Z = solve(In - RHO[t-1]*w)
+		sRhot_1 = ( (t(Y[,t-1])%*%t(w) - t( (In - RHO[t-1]*w)%*%(TRD[t-1]*Vecn) ) )%*%RES[,t-1]/VAR[t-1] +
+				- sum(diag(Z%*%w)) )*h(fRhot_1, deriv=TRUE)
+		
+		RHO[t] = h( omegaRho + aRho*sRhot_1 + bRho*fRhot_1 )
+		
+		
+		# TRD	
+		
+		n = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w)%*%Y[,t] )
+		d = sum( t(In - RHO[t]*w)%*%(In - RHO[t]*w) )
+		TRD[t] = n/d
+		
+		# RESIDUALS
+		
+		RES[,t] = Y[,t] - t(RHO[t]*t(w%*%Y[,t])) - (In - RHO[t]*w)%*%(TRD[t]*Vecn)
+		
+		# VAR
+		VAR[t] = mean((RES[,t])^2)
+		
+		# loglik 
+		if(t>=1){ # afin de ne pas compter les 3 premieres périodes
+			loglik = loglik + log(det(In - RHO[t]*w)) - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
+		}
+		
+	}
+	
+	loglik = loglik - 0.5*nrow(Y)*Nt*log(2*pi)
+
+	
+	# output
+	if(result=="loglik"){
+		return(loglik)
+	}else if(result=="estimators"){
+		return(list(RHO=RHO, VAR=VAR, TRD=TRD, RES=RES))
+	}
+
+}
+
+
+# SDSR
+#' Convert a factor to numeric
+#'
+#' Convert a factor with numeric levels to a non-factor
+#'
+#' @param x A vector containing a factor with numeric levels
+#'
+#' @return The input factor made a numeric vector
+#'
+#' @examples
+#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
+#' fac2num(x)
+#'
 #' @export
-SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
-{		
-	
-	
-	showResults <- function(){
+SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE)
+{
+	showResults <- function(title){
 		eval(
 		if(verbose){
-			cat(" ------------------------------------------------------------- \n")
-			cat(" -------------------------- RESULTS -------------------------- \n")
-			cat(" ------------------------------------------------------------- \n >")
+			lineComment(title)
+			cat(">")
 			if(exists("omegaRho")){ cat(" omegaRho: ", round(omegaRho, digits=4), " // ")}
 			if(exists("aRho")){ cat(" aRho: ", round(aRho, digits=4), " // ")}
-			if(exists("bRho")){ cat(" bRho: ", round(bRho, digits=4))}
+			if(exists("bRho")){ cat(" bRho: ", round(bRho, digits=4), ' // ')}
 			if(exists("f1Rho")){ cat(" f1Rho: ", round(f1Rho, digits=4), "\n >") }
 			if(exists("lik")){ cat(" LOG-LIKELIHOOD: ", round(lik, digits=4), "\n") }
 			cat(" ------------------------------------------------------------- \n")
@@ -637,25 +779,13 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 		parent.frame())
 	}
 	
-	step <- function(TITLE){
-		eval(
-			if(verbose){
-				cat("###############################################################\n")
-				cat(" ")
-				cat(TITLE)
-				cat(" \n")
-				cat("###############################################################\n")
-			},
-		parent.frame())
-	}
-	
 	
 	mc.cores = parallel::detectCores() 
 	
 	funOptim <- function(X){
 		funOptim= 1e+5
 		tryCatch({
-			funOptim = - loglikTVRhoCond(Y, w, 
+			funOptim = - loglikTVRhoCondtvW(Y, W, 
 				omegaRho=X[1], 	aRho=X[2], 	bRho=X[3], 	f1Rho=X[4])
 		}, error = function(err) {})
 		return(funOptim)
@@ -671,19 +801,18 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 	
 	
 	if(verbose){
-		cat("###############################################################\n")
-		cat("N° countries: ", nrow(Y),"	Time periods:", ncol(Y),"\n")
+		lineComment(paste("N° countries: ", nrow(Y)," / time periods: ", ncol(Y),sep=''))
 	}
 	
-	step("Estimation - Time-constant parameters (omega and f1)")
+	lineComment("Estimation: time-invariant parameters (omega and f1)")
 	
 	# ----------------------------------------------------------------------
 	# --------------------- BASIC ESTIMATIONS ------------------------------
 	# ----------------------------------------------------------------------
 	
 	n = 10
-	estim = SRllstatic(Y[,1:n], w, kernel='uniform', option='estimation', verbose = FALSE)
-	f1Rho = estim$RHO
+	estim = SRstatic(Y[,1:n], W, kernel='uniform', verbose = 0)
+	f1Rho = estim$rho
 	
 	
 	# --------------------------------
@@ -696,7 +825,7 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 #	}
 	
 #	par = as.list(as.data.frame(t(sampleOmegaRho)))
-#	multiloglikf = - mcmapply(FUN=SUBfunOptim, par, mc.cores = mc.cores)
+#	multiloglikf = - parallel::mcmapply(FUN=SUBfunOptim, par, mc.cores = mc.cores)
 	
 #	im = which.max(multiloglikf)
 #	omegaRho = sampleOmegaRho[im]
@@ -708,12 +837,12 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 	# --------------------------------
 	# beginning optimization 2
 	sample=list()
-	sample$omegaRho =  c(-0.05, 0.0, 0.05, 0.1, 0.3, 0.5, 0.7) 
+	sample$omegaRho =  c(0.01, 0.05, 0.1, 0.3, 0.5, 0.7) 
 	sample$f1Rho = f1Rho*c(0.9, 1, 1.1) 
 	sample$aRho = c(0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 0.8) # bound(aVar)
 	sample$bRho =  c(0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 0.95) # bound(bVar)
 	
-	step("Estimation - Time-varying parameters (Omega, A and B)")
+	lineComment("Estimation: time-varying parameters (omega, A and B)")
 	
 	showSample()
 	
@@ -734,13 +863,13 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 	mc.cores = parallel::detectCores() 
 	
 	newpar = as.list(as.data.frame(t(par)))
-	multiloglikf = - pbmcmapply(FUN=funOptim, newpar, mc.cores=mc.cores)
+	multiloglikf = - parallel::mcmapply(FUN=funOptim, newpar, mc.cores=mc.cores)
 	
 	im = which.max(multiloglikf)
 	omegaRho = par[im, 1]; 	aRho = par[im, 2]; 	bRho = par[im, 3]; 	f1Rho = par[im, 4] 
 	lik = multiloglikf[im]
 	
-	showResults()
+	showResults('Optimization 2: sample')
 	# end optimization 2
 	# --------------------------------
 	# beginning optimization 3
@@ -761,7 +890,7 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 		bRho = opt$estimate[3];
 #		f1Rho = opt$estimate[4];
 		lik = - opt$minimum
-		showResults()
+		showResults('Optimization 3: nlm')
 	}
 	
 	# end optimization 2
@@ -770,7 +899,7 @@ SRllTVCond <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 	
 
 	
-	list = loglikTVRhoCond(Y, w, omegaRho, aRho, bRho, f1Rho, result="estimators")
+	list = loglikTVRhoCondtvW(Y, W, omegaRho, aRho, bRho, f1Rho, result="estimators")
 	
 	RHO = list[[1]]; VAR = list[[2]]; TRD = list[[3]]; RES = list[[4]]
 	

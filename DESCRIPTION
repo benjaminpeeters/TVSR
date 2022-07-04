@@ -9,6 +9,8 @@ Author: Benjamin M J Peeters [aut, cre] (<https://orcid.org/0000-0002-5095-2021>
 Maintainer: Benjamin M J Peeters <benjaminpeeters@protonmail.com>
 License: GPL-3
 Encoding: UTF-8
+Depends:
+    R (>= 3.5.0)
 Imports:
 	parallel
 URL: https://github.com/benjaminpeeters/TVSR
