@@ -749,7 +749,8 @@ loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atan
 #' fac2num(x)
 #'
 #' @export
-SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE)
+SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE,
+                 mc.cores = max(1L, parallel::detectCores() - 2L))
 {
 	showResults <- function(title){
 		eval(
@@ -765,7 +766,7 @@ SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE)
 		},
 		parent.frame())
 	}
-	
+
 	showSample <- function(){
 		eval(
 		if(verbose){
@@ -778,10 +779,8 @@ SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE)
 		},
 		parent.frame())
 	}
-	
-	
-	mc.cores = parallel::detectCores() 
-	
+
+
 	funOptim <- function(X){
 		funOptim= 1e+5
 		tryCatch({
@@ -858,10 +857,8 @@ SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE)
 		i=i+1
 		par[i,1] = sample$omegaRho[iOR]; 	par[i,2] = sample$aRho[iAR]
 		par[i,3] = sample$bRho[iBR]; 		par[i,4] = sample$f1Rho[iF1R] 
-	}}}} 
-	
-	mc.cores = parallel::detectCores() 
-	
+	}}}}
+
 	newpar = as.list(as.data.frame(t(par)))
 	multiloglikf = - parallel::mcmapply(FUN=funOptim, newpar, mc.cores=mc.cores)
 	

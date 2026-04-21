@@ -14,8 +14,9 @@
 #' fac2num(x)
 #'
 #' @export
-SRstatic <- function(Y, w, X=NULL, kernel='uniform', verbose = 1, crossValid=FALSE){		
-	
+SRstatic <- function(Y, w, X=NULL, kernel='uniform', verbose = 1, crossValid=FALSE,
+                     mc.cores = max(1L, parallel::detectCores() - 2L)){
+
 	showResults <- function(title=NULL){
 		eval(
 		if(verbose>=1){
@@ -29,9 +30,7 @@ SRstatic <- function(Y, w, X=NULL, kernel='uniform', verbose = 1, crossValid=FAL
 		},
 		parent.frame())
 	}
-	
-	mc.cores = parallel::detectCores()
-	
+
 	if(crossValid){option="cross-validation"}else{option="estimation"}
 	
 	funOptim <- function(rho){
@@ -119,9 +118,10 @@ SRstatic <- function(Y, w, X=NULL, kernel='uniform', verbose = 1, crossValid=FAL
 #' fac2num(x)
 #'
 #' @export
-LKSR <- function(Y, W, X=NULL, b=1, kernel="epanechnikov")
+LKSR <- function(Y, W, X=NULL, b=1, kernel="epanechnikov",
+                 mc.cores = max(1L, parallel::detectCores() - 2L))
 {
-	
+
 	if(is.integer(b)){ stop("b is not an integer");}
 	if(b <1){ stop("b must be positive");}
 	if(!is.null(X)){
@@ -129,13 +129,11 @@ LKSR <- function(Y, W, X=NULL, b=1, kernel="epanechnikov")
 		if(dim(X[[1]])[1]!=dim(Y)[1]){stop("dim(X[[1]])[1]!=dim(Y)[1]");}
 		Nk = dim(X[[1]])[2]; NNk = 1:Nk
 	}else{Nk = 0; NNk = NULL}
-	
+
 	# h = 2*b+1
 	II = (b+1):(dim(Y)[2] - b)
 	lII = length(II)
-	
-	mc.cores = parallel::detectCores() 
-	
+
 	# ======================================================================
 	# ============================= CORE ===================================
 	# ======================================================================
@@ -144,7 +142,7 @@ LKSR <- function(Y, W, X=NULL, b=1, kernel="epanechnikov")
 		sY = (i-b):(i+b)
 		if(is.list(W) & is.matrix(W[[1]])){w = W[sY]}else if(is.matrix(W)){w=W}
 		if(is.null(X)){x=X}else if(is.list(X) & is.matrix(X[[1]])){x=X[sY]}
-		return(SRstatic(Y=Y[,sY], w=w, X=x, kernel=kernel, verbose=FALSE))
+		return(SRstatic(Y=Y[,sY], w=w, X=x, kernel=kernel, verbose=FALSE, mc.cores=1L))
 	}
 	
 	estim = parallel::mcmapply(FUN=estimStatic, II, mc.cores=mc.cores)
@@ -217,9 +215,10 @@ LKSR <- function(Y, W, X=NULL, b=1, kernel="epanechnikov")
 #' fac2num(x)
 #'
 #' @export
-crossValidLKSR <- function(Y, W, X=NULL, b, kernel="epanechnikov", verbose = TRUE)
+crossValidLKSR <- function(Y, W, X=NULL, b, kernel="epanechnikov", verbose = TRUE,
+                            mc.cores = max(1L, parallel::detectCores() - 2L))
 {
-	
+
 	if(is.integer(b)){ stop("b is not an integer");}
 	if(b <1){ stop("b must be positive");}
 	if(!is.null(X)){
@@ -227,12 +226,10 @@ crossValidLKSR <- function(Y, W, X=NULL, b, kernel="epanechnikov", verbose = TRU
 		if(dim(X[[1]])[1]!=dim(Y)[1]){stop("dim(X[[1]])[1]!=dim(Y)[1]");}
 		Nk = dim(X[[1]])[2]; NNk = 1:Nk
 	}else{Nk = 0; NNk = NULL}
-	
+
 	II = (b+1):(dim(Y)[2] - b)
 	lII = length(II)
-	
-	mc.cores = parallel::detectCores() 
-	
+
 	######################################################################################
 		
 	if(verbose){cat(" ## CROSS-VALIDATION LKSR ## \n",sep="\t");}
@@ -250,7 +247,7 @@ crossValidLKSR <- function(Y, W, X=NULL, b, kernel="epanechnikov", verbose = TRU
 		if(is.null(X)){x=X}else if(is.list(X) & is.matrix(X[[1]])){x=X[[sY]]}
 		
 		
-		estimTraining = SRstatic(Y=Ytraining, w=w, X=x, kernel=kernel, verbose=FALSE, crossValid=TRUE)
+		estimTraining = SRstatic(Y=Ytraining, w=w, X=x, kernel=kernel, verbose=FALSE, crossValid=TRUE, mc.cores=1L)
 		
 		Ytest = Ytraining[,(b+1)]
 		if(is.list(W) & is.matrix(W[[1]])){w = W[[(b+1)]]}else if(is.matrix(W)){w=W}
