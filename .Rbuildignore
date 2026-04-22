@@ -1,0 +1,4 @@
+^.*\.html$
+^(?!README\.md$|NEWS\.md$).*\.md$
+^data/example-macroeconomics-2024$
+^\.github$

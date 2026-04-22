@@ -31,9 +31,9 @@ loglikStatic <- function(Y, w, rho=0, var=0, trd=0,
 	loglikelihood =0
 	
 	if(kernel=="uniform"){
-		KK = 1
+		KK = rep(1, Nt)
 	}else if(kernel=="epanechnikov"){
-		KK = K(seq(1,Nt,by=1), c=((Nt-1)/2 +1), bw = Nt/2) 
+		KK = K(seq(1,Nt,by=1), c=((Nt-1)/2 +1), bw = Nt/2)
 		KK = KK/mean(KK)
 	}
 	
