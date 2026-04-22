@@ -141,19 +141,23 @@ loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh
 
 
 
+# FIXME: SRllTV is broken. Calling it crashes with
+#   "object of type 'closure' is not subsettable"
+# at the first `sample$omegaRho <- ...` assignment (~line 375): `sample`
+# is never initialised as a list, so R resolves bare `sample` to the
+# base::sample function, and `function$field` errors out. Adding a
+# `sample <- list()` before the first `sample$...` would fix the crash;
+# a second one-character fix at `static$RHO` (~line 373) -> `static$rho`
+# aligns with SRstatic's lowercase return naming. The same bug exists in
+# p2's private SRllTV (p2_spatial_spillovers_interest_rates/codes/
+# functions.r around line 352). Neither version has run successfully on
+# the checked-in code, so the 12-parameter fully-score-driven variant is
+# currently dormant. Fixing SRllTV and wiring it as model$trd = "gas" /
+# model$var = "gas" is deferred to a future PR that includes p2
+# archaeology to determine what output the paper actually used for the
+# "SDSR baseline" label.
 # SRllTV
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#' SDSR = SRllTV using a 'conditional' (based on analytical results) loglikelihood functio to faster the process.
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' 12-parameter score-driven spatial regression (dormant; see FIXME above).
 #'
 #' @noRd
 SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
@@ -642,6 +646,116 @@ loglikTVRhoCond <- function(Y, w, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0
 }
 
 
+# loglikTVRhoCond_mixed
+#' Mixed-mode conditional log-likelihood (profile-likelihood variant).
+#'
+#' Generalisation of [loglikTVRhoCond] in which the trend (alpha) and/or
+#' variance (sigma^2) nuisance components can independently be treated
+#' either as time-varying (analytical per-period update, as in the base
+#' conditional likelihood) or as a single pooled scalar chosen by profile
+#' likelihood given the rho path.
+#'
+#' Used by [SDSR] to implement the four-spec decomposition driven by
+#' \code{model = list(trd, var)}. For the \code{(trd = "tv", var = "tv")}
+#' case the function delegates to [loglikTVRhoCond] for bit-identity with
+#' TVSR 0.1.1.
+#'
+#' @param trd_mode,var_mode One of \code{"tv"} (per-period analytical update)
+#'   or \code{"const"} (single pooled scalar).
+#' @inheritParams loglikTVRhoCond
+#'
+#' @noRd
+loglikTVRhoCond_mixed <- function(Y, w, omegaRho = 0, aRho = 0.01, bRho = 0.8,
+                                  f1Rho = atanh(0.4),
+                                  trd_mode = "tv", var_mode = "tv",
+                                  result = "loglik")
+{
+	trd_mode <- match.arg(trd_mode, c("tv", "const"))
+	var_mode <- match.arg(var_mode, c("tv", "const"))
+
+	# (tv, tv): delegate for bit-identity with loglikTVRhoCond.
+	if (trd_mode == "tv" && var_mode == "tv") {
+		return(loglikTVRhoCond(Y, w, omegaRho = omegaRho, aRho = aRho,
+		                       bRho = bRho, f1Rho = f1Rho, result = result))
+	}
+
+	Nt <- ncol(Y); Nc <- nrow(Y)
+	In <- diag(Nc); Vecn <- rep(1, Nc)
+
+	# Pass 1: rho path from the TV recursion. The recursion structure is
+	# unchanged across specs (the plan's key invariant); only the nuisance
+	# values used in the likelihood sum differ.
+	RHO <- loglikTVRhoCond(Y, w, omegaRho = omegaRho, aRho = aRho,
+	                       bRho = bRho, f1Rho = f1Rho,
+	                       result = "estimators")$RHO
+
+	# b_t = M_t Y_t and c_t = M_t 1_n, where M_t = I - rho_t w.
+	Bmat <- matrix(NA_real_, Nc, Nt)
+	Cmat <- matrix(NA_real_, Nc, Nt)
+	for (tt in seq_len(Nt)) {
+		Mt <- In - RHO[tt] * w
+		Bmat[, tt] <- Mt %*% Y[, tt]
+		Cmat[, tt] <- Mt %*% Vecn
+	}
+
+	cb <- colSums(Cmat * Bmat)
+	cc <- colSums(Cmat^2)
+	alpha_t_all <- cb / cc
+
+	tt_range <- 2:Nt  # likelihood sums over t = 2..T (first period dropped)
+
+	# Pass 2: profile (alpha, sigma^2) per spec from the rho path.
+	if (trd_mode == "const" && var_mode == "const") {
+		# Case 2: pooled alpha, pooled sigma^2 (closed-form).
+		alpha  <- sum(cb[tt_range]) / sum(cc[tt_range])
+		TRD    <- rep(alpha, Nt)
+		RES    <- Bmat - alpha * Cmat
+		sigma2 <- sum(RES[, tt_range]^2) / (Nc * length(tt_range))
+		VAR    <- rep(sigma2, Nt)
+	} else if (trd_mode == "tv" && var_mode == "const") {
+		# Case 3: per-period alpha_t, pooled sigma^2 (closed-form).
+		TRD    <- alpha_t_all
+		RES    <- Bmat - sweep(Cmat, 2, alpha_t_all, "*")
+		sigma2 <- sum(RES[, tt_range]^2) / (Nc * length(tt_range))
+		VAR    <- rep(sigma2, Nt)
+	} else {
+		# Case 4: (const, tv) - pooled alpha via 1-D Brent on the
+		# sigma^2-concentrated log-likelihood; per-period sigma^2_t(alpha).
+		bracket <- range(alpha_t_all[tt_range])
+		if (diff(bracket) < sqrt(.Machine$double.eps)) {
+			alpha <- bracket[1]
+		} else {
+			spread  <- diff(bracket)
+			bracket <- bracket + c(-0.05, 0.05) * spread
+			obj <- function(a) {
+				residSq <- colSums((Bmat[, tt_range, drop = FALSE] -
+				                    a * Cmat[, tt_range, drop = FALSE])^2)
+				-sum(log(residSq))
+			}
+			alpha <- stats::optimize(obj, interval = bracket,
+			                         maximum = TRUE)$maximum
+		}
+		TRD <- rep(alpha, Nt)
+		RES <- Bmat - alpha * Cmat
+		VAR <- colMeans(RES^2)
+	}
+
+	# Pass 3: likelihood sum over t = 2..T with the profiled nuisance.
+	loglik <- 0
+	for (t in tt_range) {
+		loglik <- loglik + log(det(In - RHO[t] * w)) -
+		          0.5 * Nc * log(VAR[t]) -
+		          0.5 * sum(RES[, t]^2) / VAR[t]
+	}
+	loglik <- loglik - 0.5 * Nc * Nt * log(2 * pi)
+
+	if (result == "loglik")     return(loglik)
+	if (result == "estimators") return(list(RHO = RHO, VAR = VAR,
+	                                        TRD = TRD, RES = RES))
+	stop("unknown result: ", result)
+}
+
+
 # normalizationMatrix
 #' Convert a factor to numeric
 #'
@@ -735,23 +849,172 @@ loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atan
 }
 
 
+# loglikTVRhoCond_mixed_tvW
+#' Mixed-mode conditional log-likelihood with a time-varying W.
+#'
+#' List-of-W variant of [loglikTVRhoCond_mixed]. Delegates to
+#' [loglikTVRhoCondtvW] when \code{trd_mode == "tv"} and
+#' \code{var_mode == "tv"} for bit-identity with TVSR 0.1.1.
+#'
+#' @param W List of per-period n-by-n weight matrices (length T).
+#' @inheritParams loglikTVRhoCond_mixed
+#'
+#' @noRd
+loglikTVRhoCond_mixed_tvW <- function(Y, W, omegaRho = 0, aRho = 0.01, bRho = 0.8,
+                                      f1Rho = atanh(0.4),
+                                      trd_mode = "tv", var_mode = "tv",
+                                      result = "loglik")
+{
+	trd_mode <- match.arg(trd_mode, c("tv", "const"))
+	var_mode <- match.arg(var_mode, c("tv", "const"))
+
+	if (trd_mode == "tv" && var_mode == "tv") {
+		return(loglikTVRhoCondtvW(Y, W, omegaRho = omegaRho, aRho = aRho,
+		                          bRho = bRho, f1Rho = f1Rho, result = result))
+	}
+
+	Nt <- ncol(Y); Nc <- nrow(Y)
+	In <- diag(Nc); Vecn <- rep(1, Nc)
+
+	RHO <- loglikTVRhoCondtvW(Y, W, omegaRho = omegaRho, aRho = aRho,
+	                          bRho = bRho, f1Rho = f1Rho,
+	                          result = "estimators")$RHO
+
+	Bmat <- matrix(NA_real_, Nc, Nt)
+	Cmat <- matrix(NA_real_, Nc, Nt)
+	for (tt in seq_len(Nt)) {
+		Mt <- In - RHO[tt] * W[[tt]]
+		Bmat[, tt] <- Mt %*% Y[, tt]
+		Cmat[, tt] <- Mt %*% Vecn
+	}
+
+	cb <- colSums(Cmat * Bmat)
+	cc <- colSums(Cmat^2)
+	alpha_t_all <- cb / cc
+
+	tt_range <- 2:Nt
+
+	if (trd_mode == "const" && var_mode == "const") {
+		alpha  <- sum(cb[tt_range]) / sum(cc[tt_range])
+		TRD    <- rep(alpha, Nt)
+		RES    <- Bmat - alpha * Cmat
+		sigma2 <- sum(RES[, tt_range]^2) / (Nc * length(tt_range))
+		VAR    <- rep(sigma2, Nt)
+	} else if (trd_mode == "tv" && var_mode == "const") {
+		TRD    <- alpha_t_all
+		RES    <- Bmat - sweep(Cmat, 2, alpha_t_all, "*")
+		sigma2 <- sum(RES[, tt_range]^2) / (Nc * length(tt_range))
+		VAR    <- rep(sigma2, Nt)
+	} else {
+		bracket <- range(alpha_t_all[tt_range])
+		if (diff(bracket) < sqrt(.Machine$double.eps)) {
+			alpha <- bracket[1]
+		} else {
+			spread  <- diff(bracket)
+			bracket <- bracket + c(-0.05, 0.05) * spread
+			obj <- function(a) {
+				residSq <- colSums((Bmat[, tt_range, drop = FALSE] -
+				                    a * Cmat[, tt_range, drop = FALSE])^2)
+				-sum(log(residSq))
+			}
+			alpha <- stats::optimize(obj, interval = bracket,
+			                         maximum = TRUE)$maximum
+		}
+		TRD <- rep(alpha, Nt)
+		RES <- Bmat - alpha * Cmat
+		VAR <- colMeans(RES^2)
+	}
+
+	loglik <- 0
+	for (t in tt_range) {
+		loglik <- loglik + log(det(In - RHO[t] * W[[t]])) -
+		          0.5 * Nc * log(VAR[t]) -
+		          0.5 * sum(RES[, t]^2) / VAR[t]
+	}
+	loglik <- loglik - 0.5 * Nc * Nt * log(2 * pi)
+
+	if (result == "loglik")     return(loglik)
+	if (result == "estimators") return(list(RHO = RHO, VAR = VAR,
+	                                        TRD = TRD, RES = RES))
+	stop("unknown result: ", result)
+}
+
+
 # SDSR
-#' Convert a factor to numeric
+#' Score-Driven Spatial Regression (SDSR).
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Fit a time-varying spatial autoregressive model
+#' \deqn{Y_t = \alpha_t 1_n + \rho_t W_t Y_t + \varepsilon_t,
+#'       \quad \varepsilon_t \sim N(0, \sigma_t^2 I_n),}
+#' where \eqn{\rho_t} follows a score-driven recursion parameterised by
+#' four scalars \eqn{(\omega_\rho, a_\rho, b_\rho, f_{1,\rho})} and the
+#' nuisance paths \eqn{(\alpha_t, \sigma_t^2)} are configurable through
+#' the \code{model} argument.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' \subsection{Four-spec decomposition}{
+#' \code{model} is a named list with fields \code{trd} and \code{var}, each
+#' taking a value in \code{c("tv", "const", "gas")}:
+#' \tabular{ll}{
+#'   \code{"tv"}    \tab per-period analytical profile of the nuisance
+#'                       parameter given \eqn{\rho_t} (0.1.1 behaviour). \cr
+#'   \code{"const"} \tab single pooled scalar, profile-likelihood MLE
+#'                       given the \eqn{\rho} path: closed-form for
+#'                       \code{(tv, const)}, \code{(const, const)}; 1-D
+#'                       Brent search over the concentrated likelihood for
+#'                       \code{(const, tv)}. \cr
+#'   \code{"gas"}   \tab score-driven AR(1) nuisance dynamics (reserved;
+#'                       not yet implemented, see FIXME above SRllTV).
+#' }
+#' The four \code{"tv"}/\code{"const"} combinations yield the estimator
+#' family used by the p8 spatial-regression-bias paper to isolate the
+#' effect of misspecifying each nuisance component on \eqn{\rho_t}. The
+#' default \code{list(trd = "tv", var = "tv")} is bit-identical to
+#' TVSR 0.1.1's \code{SDSR()}.
+#' }
 #'
-#' @return The input factor made a numeric vector
+#' \subsection{Sibling (not nested) relation to SRstatic}{
+#' \code{model = list(trd = "const", var = "const")} yields a static
+#' \eqn{\alpha, \sigma^2} pair estimated JOINTLY with the \eqn{\rho}
+#' dynamics by profile likelihood. This is a distinct estimator from
+#' [SRstatic()], which plugs in a kernel-smoothed static \eqn{\rho}.
+#' }
 #'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @param Y Numeric matrix, n rows (cross-section) by T columns (time).
+#' @param W List of length T of n-by-n spatial weight matrices, or a
+#'   single n-by-n matrix replicated across all periods.
+#' @param verbose Logical; if TRUE, print progress.
+#' @param model Named list with fields \code{trd}, \code{var} in
+#'   \code{c("tv", "const", "gas")}. Default: \code{list(trd = "tv", var = "tv")}.
+#' @param optim Vestigial (unread); retained for signature compatibility.
+#' @param mc.cores Number of forked workers for the grid search. Default:
+#'   \code{max(1L, parallel::detectCores() - 2L)}.
+#'
+#' @return A list with fields \code{RHO}, \code{VAR}, \code{TRD} (length-T
+#'   paths; constant paths for \code{"const"} specs), \code{omegaRho},
+#'   \code{aRho}, \code{bRho}, \code{f1Rho}, \code{lik}, \code{RES},
+#'   \code{mResSq}.
+#'
+#' @references Peeters, Girard and Gnabo (forthcoming); p8 spatial
+#'   regression bias paper.
 #'
 #' @export
-SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE,
+SDSR <- function(Y, W, verbose = TRUE,
+                 model = list(trd = "tv", var = "tv"),
+                 optim = TRUE,
                  mc.cores = max(1L, parallel::detectCores() - 2L))
 {
+	# `model` describes which nuisance components are time-varying and how:
+	#   model$trd, model$var in {"tv", "const", "gas"}
+	# "gas" (score-driven nuisance dynamics, see FIXME above SRllTV) is
+	# reserved for a future release; only "tv" and "const" are available now.
+	model    <- utils::modifyList(list(trd = "tv", var = "tv"), model)
+	trd_mode <- match.arg(model$trd, c("tv", "const", "gas"))
+	var_mode <- match.arg(model$var, c("tv", "const", "gas"))
+	if (trd_mode == "gas" || var_mode == "gas") {
+		stop("model$trd / model$var = \"gas\" is reserved for a future release; ",
+		     "only \"tv\" and \"const\" are implemented.")
+	}
+
 	showResults <- function(title){
 		eval(
 		if(verbose){
@@ -784,8 +1047,9 @@ SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE,
 	funOptim <- function(X){
 		funOptim= 1e+5
 		tryCatch({
-			funOptim = - loglikTVRhoCondtvW(Y, W, 
-				omegaRho=X[1], 	aRho=X[2], 	bRho=X[3], 	f1Rho=X[4])
+			funOptim = - loglikTVRhoCond_mixed_tvW(Y, W,
+				omegaRho=X[1], 	aRho=X[2], 	bRho=X[3], 	f1Rho=X[4],
+				trd_mode = trd_mode, var_mode = var_mode)
 		}, error = function(err) {})
 		return(funOptim)
 	}
@@ -896,7 +1160,8 @@ SDSR <- function(Y, W, verbose = TRUE, model="trend", optim=TRUE,
 	
 
 	
-	list = loglikTVRhoCondtvW(Y, W, omegaRho, aRho, bRho, f1Rho, result="estimators")
+	list = loglikTVRhoCond_mixed_tvW(Y, W, omegaRho, aRho, bRho, f1Rho,
+		trd_mode = trd_mode, var_mode = var_mode, result = "estimators")
 	
 	RHO = list[[1]]; VAR = list[[2]]; TRD = list[[3]]; RES = list[[4]]
 	
