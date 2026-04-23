@@ -1,17 +1,4 @@
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
 #' @noRd
 h <- function(ft, deriv=FALSE)
 {	
@@ -20,25 +7,12 @@ h <- function(ft, deriv=FALSE)
 		h = tanh(ft)
 	}else if(deriv){
 		# if h(ft) = gamma * tanh(ft) with gamma \in (0,1)
-		# then h'(ft) = gamma * (1 - tanh²(ft))
+		# then h'(ft) = gamma * (1 - tanh^2(ft))
 		h = (1 - tanh(ft)^2)
 	}
 	return(h)
 }
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
 #' @noRd
 hinv <- function(rho)
 {
@@ -51,21 +25,8 @@ hinv <- function(rho)
 		Z = solve(diag(nrow(w)) - rho*w)
 	}
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
 #' @noRd
-loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4), 
+loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4),
 									omegaVar=0, aVar=0.01, bVar=0.8, f1Var=log(1), 
 									omegaTrd=0, aTrd=0.01, bTrd=0.8, f1Trd=0,
 							density= "normal", result="loglik")
@@ -88,7 +49,7 @@ loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh
 		RES[,t] = Y[,t] - t(RHO[t]*t(w%*%Y[,t])) - (In - RHO[t]*w)%*%(TRD[t]*Vecn)
 		
 		# loglik = log(det(In - RHO[t]*w)) - 0.5*log(det(VAR[t]*In)) - 0.5*sum(d^2)/VAR[t]
-		loglik = 0 # afin de ne pas compter la première période dans l'évaluation de la loglik
+		loglik = 0 # first period excluded from the log-likelihood sum
 		
 		for(t in 2:Nt){ 
 			
@@ -116,7 +77,7 @@ loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh
 			
 			# loglik 
 			RES[,t] = Y[,t] - t(RHO[t]*t(w%*%Y[,t])) - (In - RHO[t]*w)%*%(TRD[t]*Vecn)
-			if(t>=4){ # afin de ne pas compter les 3 premieres périodes
+			if(t>=4){ # skip the first 3 periods
 				loglik = loglik + determinant(In - RHO[t]*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
 			}
 			
@@ -248,7 +209,7 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 	
 	if(verbose){
 		cat("###############################################################\n")
-		cat("N° countries: ", nrow(Y),"	Time periods:", ncol(Y),"\n")
+		cat("N countries: ", nrow(Y),"	Time periods:", ncol(Y),"\n")
 	}
 	
 	step("Estimation - Time-constant parameters (omega and f1)")
@@ -554,19 +515,6 @@ SRllTV <- function(Y, w, verbose = TRUE, model="trend", optim=TRUE)
 
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
 #' @noRd
 loglikTVRhoCond <- function(Y, w, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4), result="loglik")
 {
@@ -598,7 +546,7 @@ loglikTVRhoCond <- function(Y, w, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0
 	VAR[t] = mean((RES[,t])^2)
 	
 	# loglik = log(det(In - RHO[t]*w)) - 0.5*log(det(VAR[t]*In)) - 0.5*sum(d^2)/VAR[t]
-	loglik = 0 # afin de ne pas compter la première période dans l'évaluation de la loglik
+	loglik = 0 # first period excluded from the log-likelihood sum
 	
 	for(t in 2:Nt){ 
 		
@@ -627,7 +575,7 @@ loglikTVRhoCond <- function(Y, w, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0
 		VAR[t] = mean((RES[,t])^2)
 		
 		# loglik 
-		if(t>=1){ # afin de ne pas compter les 3 premieres périodes
+		if(t>=1){ # skip the first 3 periods
 			loglik = loglik + determinant(In - RHO[t]*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
 		}
 		
@@ -649,16 +597,16 @@ loglikTVRhoCond <- function(Y, w, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0
 # loglikTVRhoCond_mixed
 #' Mixed-mode conditional log-likelihood (profile-likelihood variant).
 #'
-#' Generalisation of [loglikTVRhoCond] in which the trend (alpha) and/or
-#' variance (sigma^2) nuisance components can independently be treated
-#' either as time-varying (analytical per-period update, as in the base
-#' conditional likelihood) or as a single pooled scalar chosen by profile
-#' likelihood given the rho path.
+#' Generalisation of \code{loglikTVRhoCond} in which the trend (alpha)
+#' and/or variance (sigma^2) nuisance components can independently be
+#' treated either as time-varying (analytical per-period update, as in
+#' the base conditional likelihood) or as a single pooled scalar chosen
+#' by profile likelihood given the rho path.
 #'
 #' Used by [SDSR] to implement the four-spec decomposition driven by
 #' \code{model = list(trd, var)}. For the \code{(trd = "tv", var = "tv")}
-#' case the function delegates to [loglikTVRhoCond] for bit-identity with
-#' TVSR 0.1.1.
+#' case the function delegates to \code{loglikTVRhoCond} for bit-identity
+#' with TVSR 0.1.1.
 #'
 #' @param trd_mode,var_mode One of \code{"tv"} (per-period analytical update)
 #'   or \code{"const"} (single pooled scalar).
@@ -756,19 +704,6 @@ loglikTVRhoCond_mixed <- function(Y, w, omegaRho = 0, aRho = 0.01, bRho = 0.8,
 }
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
-#'
-#' Convert a factor with numeric levels to a non-factor
-#'
-#' @param x A vector containing a factor with numeric levels
-#'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
-#'
 #' @noRd
 loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0.4), result="loglik")
 {
@@ -800,7 +735,7 @@ loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atan
 	VAR[t] = mean((RES[,t])^2)
 	
 	# loglik = log(det(In - RHO[t]*w)) - 0.5*log(det(VAR[t]*In)) - 0.5*sum(d^2)/VAR[t]
-	loglik = 0 # afin de ne pas compter la première période dans l'évaluation de la loglik
+	loglik = 0 # first period excluded from the log-likelihood sum
 	
 	for(t in 2:Nt){ 
 		
@@ -830,7 +765,7 @@ loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atan
 		VAR[t] = mean((RES[,t])^2)
 		
 		# loglik 
-		if(t>=1){ # afin de ne pas compter les 3 premieres périodes
+		if(t>=1){ # skip the first 3 periods
 			loglik = loglik + determinant(In - RHO[t]*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
 		}
 		
@@ -852,8 +787,8 @@ loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atan
 # loglikTVRhoCond_mixed_tvW
 #' Mixed-mode conditional log-likelihood with a time-varying W.
 #'
-#' List-of-W variant of [loglikTVRhoCond_mixed]. Delegates to
-#' [loglikTVRhoCondtvW] when \code{trd_mode == "tv"} and
+#' List-of-W variant of \code{loglikTVRhoCond_mixed}. Delegates to
+#' \code{loglikTVRhoCondtvW} when \code{trd_mode == "tv"} and
 #' \code{var_mode == "tv"} for bit-identity with TVSR 0.1.1.
 #'
 #' @param W List of per-period n-by-n weight matrices (length T).
@@ -1064,7 +999,7 @@ SDSR <- function(Y, W, verbose = TRUE,
 	
 	
 	if(verbose){
-		lineComment(paste("N° countries: ", nrow(Y)," / time periods: ", ncol(Y),sep=''))
+		lineComment(paste("N countries: ", nrow(Y)," / time periods: ", ncol(Y),sep=''))
 	}
 	
 	lineComment("Estimation: time-invariant parameters (omega and f1)")

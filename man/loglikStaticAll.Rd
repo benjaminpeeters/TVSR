@@ -2,7 +2,7 @@
 % Please edit documentation in R/loglikelihood.r
 \name{loglikStaticAll}
 \alias{loglikStaticAll}
-\title{Convert a factor to numeric}
+\title{Dispatch log-likelihood evaluation for the static spatial model}
 \usage{
 loglikStaticAll(
   Y,
@@ -15,16 +15,33 @@ loglikStaticAll(
 )
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{Y}{Numeric matrix, n rows by T columns.}
+
+\item{W}{Either a single n-by-n matrix (time-invariant) or a list of
+length T of n-by-n matrices (time-varying).}
+
+\item{X}{Optional list of length T of n-by-k design matrices, or NULL.}
+
+\item{rho}{Scalar spatial-dependence parameter at which to evaluate.}
+
+\item{kernel}{Weight kernel, one of \code{"uniform"} or
+\code{"epanechnikov"}.}
+
+\item{option}{Either \code{"estimation"} (default) or
+\code{"cross-validation"} (drops the midpoint weight).}
+
+\item{result}{Either \code{"loglik"} (scalar log-likelihood) or
+\code{"estimators"} (profiled nuisance values).}
 }
 \value{
-The input factor made a numeric vector
+If \code{result = "loglik"}: a scalar. If
+\code{result = "estimators"}: a list with \code{RHO}, \code{VAR},
+\code{TRD}, \code{RES}, and optionally \code{BETA}.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Thin dispatcher that selects the correct internal log-likelihood
+implementation based on the shapes of \code{W} (matrix vs list of
+matrices, i.e. time-invariant vs time-varying) and \code{X} (NULL
+vs list of exogenous design matrices). Called by \code{\link[=SRstatic]{SRstatic()}}; also
+available as a standalone utility for likelihood-at-a-point evaluation.
 }

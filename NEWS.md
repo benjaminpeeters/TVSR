@@ -1,3 +1,63 @@
+# TVSR 0.1.3
+
+## Documentation hygiene
+
+- Stripped BePe placeholder roxygen blocks (22 occurrences of
+  `Convert a factor to numeric` / `fac2num(x)`) across `R/sdsr.r`,
+  `R/lksr.r`, `R/spatialMatrix.r`, `R/plot.r`, `R/loglikelihood.r`,
+  `R/complements.r`. Wrote minimum-correct `@title` / `@description` /
+  `@param` / `@return` headers for the 11 exports that previously shared
+  the placeholder (`SDSR` already had a proper docstring from 0.1.2);
+  marked 8 internal helpers `@noRd` so they no longer generate stale
+  `man/*.Rd`.
+- Added `R/TVSR-package.R` declaring `@importFrom` for
+  `stats::{df, median, nlm, optimize, rexp, rnorm, runif, sd}`,
+  `utils::{modifyList, tail}`,
+  `graphics::{grid, layout, legend, lines, par, plot.new}`, and
+  `grDevices::{dev.off, pdf}`. Also calls `utils::globalVariables()` to
+  silence "undefined global" NOTEs originating from dormant / orphan
+  code paths in `R/2w.r`, `R/unused.r`, `R/test.r` pending their
+  audit-driven removal (tracked in TVSR/TODO.md PR B).
+- Added `R/data.R` with roxygen for the nine exported data objects:
+  `df`, `dfPolicyRate`, `dfPolicyRateShadow`, `W`, `w`, `Y`, `time`,
+  `sumTrade`, `Cftvw`. `w` shares an Rd topic with `W` via `@rdname` to
+  avoid the `w.Rd` / `W.Rd` case-insensitive filesystem collision.
+- Regenerated `man/` and `NAMESPACE` from scratch; the 13 stale
+  internal / orphan Rd files (`h`, `hinv`, `K`, `Z`, `loglik`,
+  `loglikStatic`, `loglikTVRhoCond`, `loglikTVRhoVarTrd`, `pause`,
+  `SRllstatic`, `SRllTV`, `SRllTVCond`, `SRlocal`) were removed.
+- Fixed non-ASCII characters in R source and data: French inline
+  comments in `R/sdsr.r` translated to English; the degree-sign glyph
+  `°` in three `cat()` strings removed; `"Côte d'Ivoire"` in
+  `data/dbMonetaryPolicyInterestRates.rdata` re-encoded Latin-1 →
+  UTF-8.
+- Rewrote the DESCRIPTION `Description:` field to a formal
+  CRAN-compliant wording and added the SSRN reference
+  `<https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6589023>`.
+  Synced the manual `Author:` / `Maintainer:` fields to match
+  `Authors@R`-derived values.
+
+## Bugs fixed
+
+- `R/2w.r`: the dormant `loglikStaticAll2W` was calling
+  `loglikStaticAll(..., omegaRho = ..., df = ...)` with two arguments
+  that no longer exist on the current signature. Patched to a no-op
+  stub matching the live signature; the function is not wired into any
+  export and needs a proper port from p2 to become functional
+  (tracked in TVSR/TODO.md P3).
+
+## CI
+
+- `.github/workflows/R-CMD-check.yaml`: tightened `error-on` from
+  `"error"` to `"warning"`. `--no-examples` is still set; PR B (README
+  + examples) will remove it once every export has a runnable
+  `\examples{}` block.
+
+## Status
+
+- Local `R CMD check --no-examples --no-manual`: **0 ERROR, 0 WARNING,
+  0 NOTE** on Linux release.
+
 # TVSR 0.1.2
 
 ## Backwards-compatible additions

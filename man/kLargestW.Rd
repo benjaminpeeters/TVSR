@@ -2,21 +2,23 @@
 % Please edit documentation in R/spatialMatrix.r
 \name{kLargestW}
 \alias{kLargestW}
-\title{Convert a factor to numeric}
+\title{Keep only the k largest entries in each row of a spatial weight matrix}
 \usage{
 kLargestW(w, k)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{w}{Square numeric matrix with named columns (dimnames are
+required: the helper assigns back by name).}
+
+\item{k}{Positive integer; number of entries to retain per row.}
 }
 \value{
-The input factor made a numeric vector
+A matrix of the same dimensions as \code{w}, with all but the
+\code{k} largest values per row set to zero.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Row-wise k-nearest-neighbour sparsification of a weight matrix: for
+each row, zero out all entries except the \code{k} largest by value.
+Used to construct sparse spatial weight matrices from dense similarity
+scores before normalisation.
 }

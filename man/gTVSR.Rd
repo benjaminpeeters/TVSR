@@ -2,21 +2,28 @@
 % Please edit documentation in R/plot.r
 \name{gTVSR}
 \alias{gTVSR}
-\title{Convert a factor to numeric}
+\title{Interactive wrapper around graphTVSR: plot then save-to-PDF by prompt}
 \usage{
 gTVSR(estim, Time = NA, firstValue = F, RHOT = NA)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{estim}{A TVSR fit; must contain \code{$RHO} and, if present,
+\code{$omega}, \code{$A}, \code{$B}, \code{$f1}, \code{$lik}.}
+
+\item{Time}{Optional time axis (vector of length \code{length(estim$RHO)}).}
+
+\item{firstValue}{Logical; if FALSE (default), drop the first period
+from the plot (common for score-driven recursions where the first
+value is initialised, not estimated).}
+
+\item{RHOT}{Optional true \eqn{\rho_t} path to overlay.}
 }
 \value{
-The input factor made a numeric vector
+Invisibly NULL; called for its plotting and file-writing
+side effects.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Calls \code{\link[=graphTVSR]{graphTVSR()}} once to display the plot, then prompts for a
+filename and calls it again to save as PDF. Interactive-only; not
+suitable for batch scripts (blocks on stdin).
 }

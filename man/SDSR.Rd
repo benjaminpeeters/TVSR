@@ -2,21 +2,78 @@
 % Please edit documentation in R/sdsr.r
 \name{SDSR}
 \alias{SDSR}
-\title{Convert a factor to numeric}
+\title{Score-Driven Spatial Regression (SDSR).}
 \usage{
-SDSR(Y, W, verbose = TRUE, model = "trend", optim = TRUE)
+SDSR(
+  Y,
+  W,
+  verbose = TRUE,
+  model = list(trd = "tv", var = "tv"),
+  optim = TRUE,
+  mc.cores = max(1L, parallel::detectCores() - 2L)
+)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{Y}{Numeric matrix, n rows (cross-section) by T columns (time).}
+
+\item{W}{List of length T of n-by-n spatial weight matrices, or a
+single n-by-n matrix replicated across all periods.}
+
+\item{verbose}{Logical; if TRUE, print progress.}
+
+\item{model}{Named list with fields \code{trd}, \code{var} in
+\code{c("tv", "const", "gas")}. Default: \code{list(trd = "tv", var = "tv")}.}
+
+\item{optim}{Vestigial (unread); retained for signature compatibility.}
+
+\item{mc.cores}{Number of forked workers for the grid search. Default:
+\code{max(1L, parallel::detectCores() - 2L)}.}
 }
 \value{
-The input factor made a numeric vector
+A list with fields \code{RHO}, \code{VAR}, \code{TRD} (length-T
+paths; constant paths for \code{"const"} specs), \code{omegaRho},
+\code{aRho}, \code{bRho}, \code{f1Rho}, \code{lik}, \code{RES},
+\code{mResSq}.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
+Fit a time-varying spatial autoregressive model
+\deqn{Y_t = \alpha_t 1_n + \rho_t W_t Y_t + \varepsilon_t,
+      \quad \varepsilon_t \sim N(0, \sigma_t^2 I_n),}
+where \eqn{\rho_t} follows a score-driven recursion parameterised by
+four scalars \eqn{(\omega_\rho, a_\rho, b_\rho, f_{1,\rho})} and the
+nuisance paths \eqn{(\alpha_t, \sigma_t^2)} are configurable through
+the \code{model} argument.
 }
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
+\details{
+\subsection{Four-spec decomposition}{
+\code{model} is a named list with fields \code{trd} and \code{var}, each
+taking a value in \code{c("tv", "const", "gas")}:
+\tabular{ll}{
+\code{"tv"}    \tab per-period analytical profile of the nuisance
+parameter given \eqn{\rho_t} (0.1.1 behaviour). \cr
+\code{"const"} \tab single pooled scalar, profile-likelihood MLE
+given the \eqn{\rho} path: closed-form for
+\code{(tv, const)}, \code{(const, const)}; 1-D
+Brent search over the concentrated likelihood for
+\code{(const, tv)}. \cr
+\code{"gas"}   \tab score-driven AR(1) nuisance dynamics (reserved;
+not yet implemented, see FIXME above SRllTV).
+}
+The four \code{"tv"}/\code{"const"} combinations yield the estimator
+family used by the p8 spatial-regression-bias paper to isolate the
+effect of misspecifying each nuisance component on \eqn{\rho_t}. The
+default \code{list(trd = "tv", var = "tv")} is bit-identical to
+TVSR 0.1.1's \code{SDSR()}.
+}
 
+\subsection{Sibling (not nested) relation to SRstatic}{
+\code{model = list(trd = "const", var = "const")} yields a static
+\eqn{\alpha, \sigma^2} pair estimated JOINTLY with the \eqn{\rho}
+dynamics by profile likelihood. This is a distinct estimator from
+\code{\link[=SRstatic]{SRstatic()}}, which plugs in a kernel-smoothed static \eqn{\rho}.
+}
+}
+\references{
+Peeters, Girard and Gnabo (forthcoming); p8 spatial
+regression bias paper.
 }
