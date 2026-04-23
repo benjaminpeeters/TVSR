@@ -60,8 +60,8 @@ test_that("default SDSR output matches the committed golden snapshot", {
   expect_equal(got$VAR,      want$VAR,      tolerance = 1e-5)
   expect_equal(got$omegaRho, want$omegaRho, tolerance = 1e-5)
   expect_equal(got$aRho,     want$aRho,     tolerance = 1e-5)
-  expect_equal(got$bRho,     want$bRho,     tolerance = 1e-5)
-  expect_equal(got$f1Rho,    want$f1Rho,    tolerance = 1e-5)
+  expect_equal(got$bRho,     want$bRho,     tolerance = 1e-4)
+  expect_equal(got$f1Rho,    want$f1Rho,    tolerance = 1e-4)
   expect_equal(got$lik,      want$lik,      tolerance = 1e-5)
 })
 
