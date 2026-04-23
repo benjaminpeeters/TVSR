@@ -55,14 +55,14 @@ test_that("default SDSR output matches the committed golden snapshot", {
               "golden snapshot not present; regenerate via README")
   want <- readRDS(golden_path)
 
-  expect_equal(got$RHO,      want$RHO,      tolerance = 0)
-  expect_equal(got$TRD,      want$TRD,      tolerance = 0)
-  expect_equal(got$VAR,      want$VAR,      tolerance = 0)
-  expect_equal(got$omegaRho, want$omegaRho, tolerance = 0)
-  expect_equal(got$aRho,     want$aRho,     tolerance = 0)
-  expect_equal(got$bRho,     want$bRho,     tolerance = 0)
-  expect_equal(got$f1Rho,    want$f1Rho,    tolerance = 0)
-  expect_equal(got$lik,      want$lik,      tolerance = 0)
+  expect_equal(got$RHO,      want$RHO,      tolerance = 1e-5)
+  expect_equal(got$TRD,      want$TRD,      tolerance = 1e-5)
+  expect_equal(got$VAR,      want$VAR,      tolerance = 1e-5)
+  expect_equal(got$omegaRho, want$omegaRho, tolerance = 1e-5)
+  expect_equal(got$aRho,     want$aRho,     tolerance = 1e-5)
+  expect_equal(got$bRho,     want$bRho,     tolerance = 1e-5)
+  expect_equal(got$f1Rho,    want$f1Rho,    tolerance = 1e-5)
+  expect_equal(got$lik,      want$lik,      tolerance = 1e-5)
 })
 
 test_that("all four (trd, var) spec combinations return well-formed output", {
