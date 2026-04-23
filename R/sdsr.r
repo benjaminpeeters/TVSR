@@ -1074,7 +1074,7 @@ SDSR <- function(Y, W, verbose = TRUE,
 	# ----------------------------------------------------------------------
 	
 	n = 10
-	estim = SRstatic(Y[,1:n], W, kernel='uniform', verbose = 0)
+	estim = SRstatic(Y[,1:n], W, kernel='uniform', verbose = 0, mc.cores = mc.cores)
 	f1Rho = estim$rho
 	
 	
