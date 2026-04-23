@@ -117,7 +117,7 @@ loglikTVRhoVarTrd <- function(Y, w,	omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh
 			# loglik 
 			RES[,t] = Y[,t] - t(RHO[t]*t(w%*%Y[,t])) - (In - RHO[t]*w)%*%(TRD[t]*Vecn)
 			if(t>=4){ # afin de ne pas compter les 3 premieres périodes
-				loglik = loglik + log(det(In - RHO[t]*w)) - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
+				loglik = loglik + determinant(In - RHO[t]*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
 			}
 			
 		}
@@ -628,7 +628,7 @@ loglikTVRhoCond <- function(Y, w, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atanh(0
 		
 		# loglik 
 		if(t>=1){ # afin de ne pas compter les 3 premieres périodes
-			loglik = loglik + log(det(In - RHO[t]*w)) - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
+			loglik = loglik + determinant(In - RHO[t]*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
 		}
 		
 	}
@@ -743,7 +743,7 @@ loglikTVRhoCond_mixed <- function(Y, w, omegaRho = 0, aRho = 0.01, bRho = 0.8,
 	# Pass 3: likelihood sum over t = 2..T with the profiled nuisance.
 	loglik <- 0
 	for (t in tt_range) {
-		loglik <- loglik + log(det(In - RHO[t] * w)) -
+		loglik <- loglik + determinant(In - RHO[t] * w, logarithm=TRUE)$modulus -
 		          0.5 * Nc * log(VAR[t]) -
 		          0.5 * sum(RES[, t]^2) / VAR[t]
 	}
@@ -831,7 +831,7 @@ loglikTVRhoCondtvW <- function(Y, W, omegaRho=0, aRho=0.01, bRho=0.8, f1Rho=atan
 		
 		# loglik 
 		if(t>=1){ # afin de ne pas compter les 3 premieres périodes
-			loglik = loglik + log(det(In - RHO[t]*w)) - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
+			loglik = loglik + determinant(In - RHO[t]*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR[t]) - 0.5*sum(RES[,t]^2)/VAR[t]
 		}
 		
 	}
@@ -927,7 +927,7 @@ loglikTVRhoCond_mixed_tvW <- function(Y, W, omegaRho = 0, aRho = 0.01, bRho = 0.
 
 	loglik <- 0
 	for (t in tt_range) {
-		loglik <- loglik + log(det(In - RHO[t] * W[[t]])) -
+		loglik <- loglik + determinant(In - RHO[t] * W[[t]], logarithm=TRUE)$modulus -
 		          0.5 * Nc * log(VAR[t]) -
 		          0.5 * sum(RES[, t]^2) / VAR[t]
 	}

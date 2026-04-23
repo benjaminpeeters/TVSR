@@ -43,7 +43,7 @@ loglikStatic <- function(Y, w, rho=0, var=0, trd=0,
 		loglikelihood = loglikelihood - KK[t]*0.5*sum(RES[,t]^2)/VAR 
 	}
 	
-	loglikelihood = loglikelihood  + Nt*(log(det(In - RHO*w)) - 0.5*nrow(Y)*log(VAR) - 0.5*nrow(Y)*log(2*pi))
+	loglikelihood = loglikelihood  + Nt*(determinant(In - RHO*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR) - 0.5*nrow(Y)*log(2*pi))
 	loglikelihood = loglikelihood/Nt
 	
 	
@@ -125,7 +125,7 @@ loglikStaticCond <- function(Y, w, rho=0, result="loglik", kernel="uniform", opt
 		loglikelihood = loglikelihood - KK[t]*0.5*sum(RES[,t]^2)/VAR 
 	}
 	
-	loglikelihood = loglikelihood + Nt*(log(det(In - RHO*w)) - 0.5*nrow(Y)*log(VAR) - 0.5*nrow(Y)*log(2*pi))
+	loglikelihood = loglikelihood + Nt*(determinant(In - RHO*w, logarithm=TRUE)$modulus - 0.5*nrow(Y)*log(VAR) - 0.5*nrow(Y)*log(2*pi))
 	loglikelihood = loglikelihood/Nt
 	
 	# output
@@ -207,7 +207,7 @@ loglikStaticCondtvW <- function(Y, W, rho=0, result="loglik", kernel="uniform", 
 	# LOG-LIK
 	loglikelihood =0
 	for(t in 1:Nt){ 
-		loglikelihood = loglikelihood + KK[t]*log(det(In - RHO*W[[t]])) - KK[t]*0.5*sum(RES[,t]^2)/VAR 
+		loglikelihood = loglikelihood + KK[t]*determinant(In - RHO*W[[t]], logarithm=TRUE)$modulus - KK[t]*0.5*sum(RES[,t]^2)/VAR 
 	}
 	
 	loglikelihood = loglikelihood + Nt*(- 0.5*Nc*log(VAR) - 0.5*Nc*log(2*pi))
@@ -313,7 +313,7 @@ loglikStaticCondX <- function(Y, w, X, rho=0, result="loglik", kernel="uniform",
 	# LOG-LIK
 	loglikelihood = 0
 	for(t in 1:Nt){ 
-		loglikelihood = loglikelihood + KK[t]*(log(det(In - RHO*w)) - 0.5*sum(RES[,t]^2)/VAR - 0.5*Nc*log(2*pi*VAR) )
+		loglikelihood = loglikelihood + KK[t]*(determinant(In - RHO*w, logarithm=TRUE)$modulus - 0.5*sum(RES[,t]^2)/VAR - 0.5*Nc*log(2*pi*VAR) )
 	}
 	loglikelihood = loglikelihood/Nt
 	
@@ -422,7 +422,7 @@ loglikStaticCondXtvW <- function(Y, W, X, rho=0,  result="loglik", kernel="unifo
 	# LOG-LIK
 	loglikelihood =0
 	for(t in 1:Nt){ 
-		loglikelihood = loglikelihood + KK[t]*(log(det(In - RHO*W[[t]])) - 0.5*sum(RES[,t]^2)/VAR - 0.5*Nc*log(2*pi*VAR)) 
+		loglikelihood = loglikelihood + KK[t]*(determinant(In - RHO*W[[t]], logarithm=TRUE)$modulus - 0.5*sum(RES[,t]^2)/VAR - 0.5*Nc*log(2*pi*VAR)) 
 	}
 	loglikelihood = loglikelihood/Nt
 	
