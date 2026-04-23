@@ -2,21 +2,26 @@
 % Please edit documentation in R/spatialMatrix.r
 \name{subMatrix}
 \alias{subMatrix}
-\title{Convert a factor to numeric}
+\title{Extract a named country sub-matrix from a time-series of weight matrices}
 \usage{
 subMatrix(W, nameW)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{W}{List of length T of n-by-n spatial weight matrices with named
+rows and columns (three-letter country codes).}
+
+\item{nameW}{Character tag identifying the sub-group to extract. See
+source for the available tags.}
 }
 \value{
-The input factor made a numeric vector
+A list of length T of n-by-n matrices with the same names as
+the input but with non-selected entries set to zero (then rescaled to
+preserve the mean weight of the full matrix).
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Filter a list of time-indexed spatial weight matrices to retain only a
+designated country grouping (e.g. \code{"USA"}, \code{"4bigMutualInfluence"},
+\code{"baseStatic"}, \code{"corePeri"}), zeroing all other entries.
+Used in p2's international-monetary-spillovers application; paper-
+specific, not a general utility.
 }

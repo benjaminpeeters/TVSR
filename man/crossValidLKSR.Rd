@@ -2,21 +2,46 @@
 % Please edit documentation in R/lksr.r
 \name{crossValidLKSR}
 \alias{crossValidLKSR}
-\title{Cross-validaiton of Local-Kernel Spatial Regression}
+\title{Leave-one-out cross-validation for LKSR bandwidth selection}
 \usage{
-crossValidLKSR(Y, W, X = NULL, b, kernel = "epanechnikov", verbose = TRUE)
+crossValidLKSR(
+  Y,
+  W,
+  X = NULL,
+  b,
+  kernel = "epanechnikov",
+  verbose = TRUE,
+  mc.cores = max(1L, parallel::detectCores() - 2L)
+)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{Y}{Numeric matrix, n rows by T columns.}
+
+\item{W}{List of length T of n-by-n spatial weight matrices, or a
+single n-by-n matrix replicated across all periods.}
+
+\item{X}{Optional list of length T of n-by-k design matrices, or NULL.}
+
+\item{b}{Half-bandwidth (positive integer).}
+
+\item{kernel}{Weight kernel, one of \code{"uniform"} or \code{"epanechnikov"}.}
+
+\item{verbose}{Logical; if TRUE, print aggregate loss on completion.}
+
+\item{mc.cores}{Number of forked workers. Default:
+\code{max(1L, parallel::detectCores() - 2L)}.}
 }
 \value{
-The input factor made a numeric vector
+A list with scalar aggregates \code{cvmean}, \code{cvllmean},
+\code{cvmedian}, \code{cvllmedian}, and the length-\eqn{(T - 2b)}
+per-period vectors \code{cv} (squared-error loss) and \code{cvll}
+(out-of-sample log-likelihood).
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Evaluate the predictive log-likelihood and squared-error loss of
+\code{\link[=LKSR]{LKSR()}} at a given half-bandwidth \code{b} by dropping the centre
+observation of each kernel window, fitting \code{\link[=SRstatic]{SRstatic()}} on the
+remaining \eqn{2b} periods, and scoring against the held-out point.
+Intended to be called across a grid of \code{b} values to choose the
+bandwidth that minimises mean out-of-sample loss.
 }

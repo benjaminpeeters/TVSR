@@ -10,18 +10,24 @@
 #	Ft = vector of all time-varying parameter (# time periods x 1)
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
+#' Plot an estimated time-varying rho path from a TVSR fit
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Render the estimated \eqn{\rho_t} series from an [SDSR()] or [LKSR()]
+#' fit with an optional overlay of the true \eqn{\rho_t} path (for
+#' simulation studies) and an annotation panel summarising the
+#' score-driven scalar estimates.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param estim A TVSR fit; must contain \code{$RHO} and, if present,
+#'   \code{$omega}, \code{$A}, \code{$B}, \code{$f1}, \code{$lik}.
+#' @param Time Optional time axis (vector of length \code{length(estim$RHO)}).
+#' @param firstValue Logical; if FALSE (default), drop the first period
+#'   from the plot (common for score-driven recursions where the first
+#'   value is initialised, not estimated).
+#' @param RHOT Optional true \eqn{\rho_t} path to overlay.
+#' @param save Either FALSE, TRUE (writes \code{img.pdf}), or a character
+#'   path to write a PDF to.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return Invisibly NULL; called for its plotting side effect.
 #'
 #' @export
 graphTVSR <- function(estim, Time = NA, firstValue = F, RHOT = NA, save = F){
@@ -78,18 +84,16 @@ graphTVSR <- function(estim, Time = NA, firstValue = F, RHOT = NA, save = F){
 }
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
+#' Interactive wrapper around graphTVSR: plot then save-to-PDF by prompt
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Calls [graphTVSR()] once to display the plot, then prompts for a
+#' filename and calls it again to save as PDF. Interactive-only; not
+#' suitable for batch scripts (blocks on stdin).
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @inheritParams graphTVSR
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return Invisibly NULL; called for its plotting and file-writing
+#'   side effects.
 #'
 #' @export
 gTVSR <- function(estim, Time = NA, firstValue = F, RHOT = NA){
@@ -99,18 +103,20 @@ gTVSR <- function(estim, Time = NA, firstValue = F, RHOT = NA){
 }
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
+#' Plot cross-sectional spatial correlation series alongside a true rho path
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Overlay Moran's I and APLE (Approximate Profile-Likelihood Estimator)
+#' sequences computed per-period on \code{Y} against time, with a reference
+#' true \eqn{\rho_t} trajectory. Diagnostic plot for comparing model-free
+#' spatial-dependence measures to the parametric estimate.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param Y Numeric matrix, n rows by T columns.
+#' @param w Single n-by-n spatial weight matrix.
+#' @param time Numeric or date vector of length T for the x-axis.
+#' @param RHOT Reference true \eqn{\rho_t} path (length T), plotted as a
+#'   dashed line for comparison.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return Invisibly NULL; called for its plotting side effect.
 #'
 #' @export
 graphSpatialCorr <- function(Y, w, time, RHOT=NA) {

@@ -2,21 +2,25 @@
 % Please edit documentation in R/complements.r
 \name{spatialMeasure}
 \alias{spatialMeasure}
-\title{Convert a factor to numeric}
+\title{Per-period spatial-correlation measure for a cross-sectional panel}
 \usage{
 spatialMeasure(Y, w, type = "moran")
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{Y}{Numeric matrix, n rows (cross-section) by T columns (time).}
+
+\item{w}{Single n-by-n spatial weight matrix.}
+
+\item{type}{Character; one of \code{"moran"}, \code{"moran p.value"},
+\code{"geary"}, \code{"getis"}, \code{"lagsarlm"}, \code{"aple"}.}
 }
 \value{
-The input factor made a numeric vector
+Numeric vector of length T with the per-period index values.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Compute a length-T sequence of scalar spatial-correlation indices from
+a cross-sectional panel \code{Y} and a time-invariant weight matrix
+\code{w}. Supported indices: Moran's I (and its p-value), Geary's C
+(as \eqn{1 - C}), Getis-Ord G, lag-SAR rho (via \pkg{spdep}), and
+APLE. Used by \code{\link[=graphSpatialCorr]{graphSpatialCorr()}} and as a model-free diagnostic.
 }

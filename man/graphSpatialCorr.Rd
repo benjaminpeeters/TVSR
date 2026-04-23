@@ -2,21 +2,26 @@
 % Please edit documentation in R/plot.r
 \name{graphSpatialCorr}
 \alias{graphSpatialCorr}
-\title{Convert a factor to numeric}
+\title{Plot cross-sectional spatial correlation series alongside a true rho path}
 \usage{
 graphSpatialCorr(Y, w, time, RHOT = NA)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{Y}{Numeric matrix, n rows by T columns.}
+
+\item{w}{Single n-by-n spatial weight matrix.}
+
+\item{time}{Numeric or date vector of length T for the x-axis.}
+
+\item{RHOT}{Reference true \eqn{\rho_t} path (length T), plotted as a
+dashed line for comparison.}
 }
 \value{
-The input factor made a numeric vector
+Invisibly NULL; called for its plotting side effect.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Overlay Moran's I and APLE (Approximate Profile-Likelihood Estimator)
+sequences computed per-period on \code{Y} against time, with a reference
+true \eqn{\rho_t} trajectory. Diagnostic plot for comparing model-free
+spatial-dependence measures to the parametric estimate.
 }

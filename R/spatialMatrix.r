@@ -10,18 +10,19 @@
 #	Ft = vector of all time-varying parameter (# time periods x 1)
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
+#' Keep only the k largest entries in each row of a spatial weight matrix
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Row-wise k-nearest-neighbour sparsification of a weight matrix: for
+#' each row, zero out all entries except the \code{k} largest by value.
+#' Used to construct sparse spatial weight matrices from dense similarity
+#' scores before normalisation.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param w Square numeric matrix with named columns (dimnames are
+#'   required: the helper assigns back by name).
+#' @param k Positive integer; number of entries to retain per row.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return A matrix of the same dimensions as \code{w}, with all but the
+#'   \code{k} largest values per row set to zero.
 #'
 #' @export
 kLargestW <- function(w,k){
@@ -36,18 +37,22 @@ kLargestW <- function(w,k){
 
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
+#' Extract a named country sub-matrix from a time-series of weight matrices
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Filter a list of time-indexed spatial weight matrices to retain only a
+#' designated country grouping (e.g. \code{"USA"}, \code{"4bigMutualInfluence"},
+#' \code{"baseStatic"}, \code{"corePeri"}), zeroing all other entries.
+#' Used in p2's international-monetary-spillovers application; paper-
+#' specific, not a general utility.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param W List of length T of n-by-n spatial weight matrices with named
+#'   rows and columns (three-letter country codes).
+#' @param nameW Character tag identifying the sub-group to extract. See
+#'   source for the available tags.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return A list of length T of n-by-n matrices with the same names as
+#'   the input but with non-selected entries set to zero (then rescaled to
+#'   preserve the mean weight of the full matrix).
 #'
 #' @export
 subMatrix = function(W, nameW){
@@ -259,18 +264,21 @@ subMatrix = function(W, nameW){
 }
 
 
-# normalizationMatrix
-#' Convert a factor to numeric
+#' Normalise a spatial weight matrix
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Scale a non-negative weight matrix so that its spectral radius equals
+#' one (\code{type = "eigenvalues"}) or its rows sum to one
+#' (\code{type = "row"}, with optional small-entry truncation via
+#' \code{threshold}).
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param W Square non-negative numeric matrix with zero diagonal.
+#' @param type Normalisation scheme; one of \code{"eigenvalues"} (divide
+#'   by the largest modulus eigenvalue) or \code{"row"} (divide each row
+#'   by its sum; re-normalised after the threshold truncation).
+#' @param threshold For \code{type = "row"} only: entries below this
+#'   value are set to zero before the second row-normalisation pass.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return The normalised weight matrix (same dimensions as \code{W}).
 #'
 #' @export
 normalizationMatrix <- function(W, type, threshold=0)

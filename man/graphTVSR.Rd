@@ -2,21 +2,31 @@
 % Please edit documentation in R/plot.r
 \name{graphTVSR}
 \alias{graphTVSR}
-\title{Convert a factor to numeric}
+\title{Plot an estimated time-varying rho path from a TVSR fit}
 \usage{
 graphTVSR(estim, Time = NA, firstValue = F, RHOT = NA, save = F)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{estim}{A TVSR fit; must contain \code{$RHO} and, if present,
+\code{$omega}, \code{$A}, \code{$B}, \code{$f1}, \code{$lik}.}
+
+\item{Time}{Optional time axis (vector of length \code{length(estim$RHO)}).}
+
+\item{firstValue}{Logical; if FALSE (default), drop the first period
+from the plot (common for score-driven recursions where the first
+value is initialised, not estimated).}
+
+\item{RHOT}{Optional true \eqn{\rho_t} path to overlay.}
+
+\item{save}{Either FALSE, TRUE (writes \code{img.pdf}), or a character
+path to write a PDF to.}
 }
 \value{
-The input factor made a numeric vector
+Invisibly NULL; called for its plotting side effect.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Render the estimated \eqn{\rho_t} series from an \code{\link[=SDSR]{SDSR()}} or \code{\link[=LKSR]{LKSR()}}
+fit with an optional overlay of the true \eqn{\rho_t} path (for
+simulation studies) and an annotation panel summarising the
+score-driven scalar estimates.
 }

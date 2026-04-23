@@ -2,22 +2,44 @@
 % Please edit documentation in R/lksr.r
 \name{LKSR}
 \alias{LKSR}
-\title{Local-Kernel Spatial Regression}
+\title{Local-kernel spatial regression (semi-parametric time-varying rho)}
 \usage{
-LKSR(Y, W, X = NULL, b = 1, kernel = "epanechnikov")
+LKSR(
+  Y,
+  W,
+  X = NULL,
+  b = 1,
+  kernel = "epanechnikov",
+  mc.cores = max(1L, parallel::detectCores() - 2L)
+)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{Y}{Numeric matrix, n rows (cross-section) by T columns (time).}
+
+\item{W}{List of length T of n-by-n spatial weight matrices, or a
+single n-by-n matrix replicated across all periods.}
+
+\item{X}{Optional list of length T of n-by-k design matrices, or NULL.}
+
+\item{b}{Half-bandwidth (positive integer). Window at time \eqn{t}
+covers \eqn{t - b, \ldots, t + b}; total window size \eqn{2b + 1}.}
+
+\item{kernel}{Weight kernel, one of \code{"uniform"} or \code{"epanechnikov"}.}
+
+\item{mc.cores}{Number of forked workers for the outer time loop.
+Default: \code{max(1L, parallel::detectCores() - 2L)}.}
 }
 \value{
-The input factor made a numeric vector
+A list with length-\eqn{(T - 2b)} paths \code{RHO}, \code{VAR},
+\code{TRD}, optional \code{BETA} (k-by-window matrix), \code{time}
+(interior time indices), sub-sample / pointwise log-likelihoods
+\code{loglikSubSample}, \code{loglikPoint}, residual matrix \code{RES},
+and the windowed inputs \code{Wss}, \code{Yss}.
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-Bandwidth: h = 2*b +1
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Estimate a time-varying spatial dependence path \eqn{\rho_t} by sliding
+a bandwidth-\eqn{(2b+1)} kernel window over the sample and calling
+\code{\link[=SRstatic]{SRstatic()}} independently at each interior time-point. Non-parametric
+counterpart to \code{\link[=SDSR]{SDSR()}}; does not impose a score-driven parametric
+recursion on \eqn{\rho_t}.
 }

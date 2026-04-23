@@ -2,21 +2,26 @@
 % Please edit documentation in R/spatialMatrix.r
 \name{normalizationMatrix}
 \alias{normalizationMatrix}
-\title{Convert a factor to numeric}
+\title{Normalise a spatial weight matrix}
 \usage{
 normalizationMatrix(W, type, threshold = 0)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{W}{Square non-negative numeric matrix with zero diagonal.}
+
+\item{type}{Normalisation scheme; one of \code{"eigenvalues"} (divide
+by the largest modulus eigenvalue) or \code{"row"} (divide each row
+by its sum; re-normalised after the threshold truncation).}
+
+\item{threshold}{For \code{type = "row"} only: entries below this
+value are set to zero before the second row-normalisation pass.}
 }
 \value{
-The input factor made a numeric vector
+The normalised weight matrix (same dimensions as \code{W}).
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Scale a non-negative weight matrix so that its spectral radius equals
+one (\code{type = "eigenvalues"}) or its rows sum to one
+(\code{type = "row"}, with optional small-entry truncation via
+\code{threshold}).
 }

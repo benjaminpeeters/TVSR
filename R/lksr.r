@@ -1,17 +1,28 @@
 
 
-# SRstatic
-#' Convert a factor to numeric
+#' Static spatial regression (single rho over the whole sample)
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Fit a spatial autoregressive model \eqn{Y_t = \alpha 1_n + \rho w Y_t +
+#' \varepsilon_t} with a single \eqn{\rho} (and corresponding \eqn{\alpha},
+#' \eqn{\sigma^2}) estimated by maximum likelihood over the full sample.
+#' Optionally kernel-weighted (uniform or Epanechnikov) to down-weight
+#' distant observations around a target period. Used by [LKSR()] as the
+#' inner kernel solver and by the p8 pipeline as a benchmark.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param Y Numeric matrix, n rows (cross-section) by T columns (time).
+#' @param w Single n-by-n spatial weight matrix (time-invariant).
+#' @param X Optional list of length T of n-by-k design matrices, or NULL.
+#' @param kernel Weight kernel, one of \code{"uniform"} or \code{"epanechnikov"}.
+#' @param verbose Integer verbosity level: 0 silent, 1 summary, 2 debug.
+#' @param crossValid Logical; if TRUE, drop the midpoint observation during
+#'   likelihood evaluation (leave-one-out for bandwidth selection via
+#'   [crossValidLKSR()]).
+#' @param mc.cores Number of forked workers for the grid search. Default:
+#'   \code{max(1L, parallel::detectCores() - 2L)}.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return A list with scalar fields \code{rho}, \code{var}, \code{trd},
+#'   optional \code{beta} (if X supplied), \code{lik} (log-likelihood at
+#'   the MLE), and matrix \code{RES} of residuals (n by T).
 #'
 #' @export
 SRstatic <- function(Y, w, X=NULL, kernel='uniform', verbose = 1, crossValid=FALSE,
@@ -49,7 +60,7 @@ SRstatic <- function(Y, w, X=NULL, kernel='uniform', verbose = 1, crossValid=FAL
 	
 	if(verbose >=1){
 		lineComment()
-		cat("N° countries: ", nrow(Y),"	Time periods:", ncol(Y),"\n")
+		cat("N countries: ", nrow(Y),"	Time periods:", ncol(Y),"\n")
 	}
 	
 	# --------------------------------
@@ -103,19 +114,29 @@ SRstatic <- function(Y, w, X=NULL, kernel='uniform', verbose = 1, crossValid=FAL
 }
 
 
-# LKSR
-#' Local-Kernel Spatial Regression
+#' Local-kernel spatial regression (semi-parametric time-varying rho)
 #'
-#' Convert a factor with numeric levels to a non-factor
-#' Bandwidth: h = 2*b +1
+#' Estimate a time-varying spatial dependence path \eqn{\rho_t} by sliding
+#' a bandwidth-\eqn{(2b+1)} kernel window over the sample and calling
+#' [SRstatic()] independently at each interior time-point. Non-parametric
+#' counterpart to [SDSR()]; does not impose a score-driven parametric
+#' recursion on \eqn{\rho_t}.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param Y Numeric matrix, n rows (cross-section) by T columns (time).
+#' @param W List of length T of n-by-n spatial weight matrices, or a
+#'   single n-by-n matrix replicated across all periods.
+#' @param X Optional list of length T of n-by-k design matrices, or NULL.
+#' @param b Half-bandwidth (positive integer). Window at time \eqn{t}
+#'   covers \eqn{t - b, \ldots, t + b}; total window size \eqn{2b + 1}.
+#' @param kernel Weight kernel, one of \code{"uniform"} or \code{"epanechnikov"}.
+#' @param mc.cores Number of forked workers for the outer time loop.
+#'   Default: \code{max(1L, parallel::detectCores() - 2L)}.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return A list with length-\eqn{(T - 2b)} paths \code{RHO}, \code{VAR},
+#'   \code{TRD}, optional \code{BETA} (k-by-window matrix), \code{time}
+#'   (interior time indices), sub-sample / pointwise log-likelihoods
+#'   \code{loglikSubSample}, \code{loglikPoint}, residual matrix \code{RES},
+#'   and the windowed inputs \code{Wss}, \code{Yss}.
 #'
 #' @export
 LKSR <- function(Y, W, X=NULL, b=1, kernel="epanechnikov",
@@ -201,18 +222,29 @@ LKSR <- function(Y, W, X=NULL, b=1, kernel="epanechnikov",
 
 
 
-# crossValidLKSR
-#' Cross-validaiton of Local-Kernel Spatial Regression
+#' Leave-one-out cross-validation for LKSR bandwidth selection
 #'
-#' Convert a factor with numeric levels to a non-factor
+#' Evaluate the predictive log-likelihood and squared-error loss of
+#' [LKSR()] at a given half-bandwidth \code{b} by dropping the centre
+#' observation of each kernel window, fitting [SRstatic()] on the
+#' remaining \eqn{2b} periods, and scoring against the held-out point.
+#' Intended to be called across a grid of \code{b} values to choose the
+#' bandwidth that minimises mean out-of-sample loss.
 #'
-#' @param x A vector containing a factor with numeric levels
+#' @param Y Numeric matrix, n rows by T columns.
+#' @param W List of length T of n-by-n spatial weight matrices, or a
+#'   single n-by-n matrix replicated across all periods.
+#' @param X Optional list of length T of n-by-k design matrices, or NULL.
+#' @param b Half-bandwidth (positive integer).
+#' @param kernel Weight kernel, one of \code{"uniform"} or \code{"epanechnikov"}.
+#' @param verbose Logical; if TRUE, print aggregate loss on completion.
+#' @param mc.cores Number of forked workers. Default:
+#'   \code{max(1L, parallel::detectCores() - 2L)}.
 #'
-#' @return The input factor made a numeric vector
-#'
-#' @examples
-#' x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-#' fac2num(x)
+#' @return A list with scalar aggregates \code{cvmean}, \code{cvllmean},
+#'   \code{cvmedian}, \code{cvllmedian}, and the length-\eqn{(T - 2b)}
+#'   per-period vectors \code{cv} (squared-error loss) and \code{cvll}
+#'   (out-of-sample log-likelihood).
 #'
 #' @export
 crossValidLKSR <- function(Y, W, X=NULL, b, kernel="epanechnikov", verbose = TRUE,

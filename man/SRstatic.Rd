@@ -2,21 +2,46 @@
 % Please edit documentation in R/lksr.r
 \name{SRstatic}
 \alias{SRstatic}
-\title{Convert a factor to numeric}
+\title{Static spatial regression (single rho over the whole sample)}
 \usage{
-SRstatic(Y, w, X = NULL, kernel = "uniform", verbose = 1, crossValid = FALSE)
+SRstatic(
+  Y,
+  w,
+  X = NULL,
+  kernel = "uniform",
+  verbose = 1,
+  crossValid = FALSE,
+  mc.cores = max(1L, parallel::detectCores() - 2L)
+)
 }
 \arguments{
-\item{x}{A vector containing a factor with numeric levels}
+\item{Y}{Numeric matrix, n rows (cross-section) by T columns (time).}
+
+\item{w}{Single n-by-n spatial weight matrix (time-invariant).}
+
+\item{X}{Optional list of length T of n-by-k design matrices, or NULL.}
+
+\item{kernel}{Weight kernel, one of \code{"uniform"} or \code{"epanechnikov"}.}
+
+\item{verbose}{Integer verbosity level: 0 silent, 1 summary, 2 debug.}
+
+\item{crossValid}{Logical; if TRUE, drop the midpoint observation during
+likelihood evaluation (leave-one-out for bandwidth selection via
+\code{\link[=crossValidLKSR]{crossValidLKSR()}}).}
+
+\item{mc.cores}{Number of forked workers for the grid search. Default:
+\code{max(1L, parallel::detectCores() - 2L)}.}
 }
 \value{
-The input factor made a numeric vector
+A list with scalar fields \code{rho}, \code{var}, \code{trd},
+optional \code{beta} (if X supplied), \code{lik} (log-likelihood at
+the MLE), and matrix \code{RES} of residuals (n by T).
 }
 \description{
-Convert a factor with numeric levels to a non-factor
-}
-\examples{
-x <- factor(c(3, 4, 9, 4, 9), levels=c(3,4,9))
-fac2num(x)
-
+Fit a spatial autoregressive model \eqn{Y_t = \alpha 1_n + \rho w Y_t +
+\varepsilon_t} with a single \eqn{\rho} (and corresponding \eqn{\alpha},
+\eqn{\sigma^2}) estimated by maximum likelihood over the full sample.
+Optionally kernel-weighted (uniform or Epanechnikov) to down-weight
+distant observations around a target period. Used by \code{\link[=LKSR]{LKSR()}} as the
+inner kernel solver and by the p8 pipeline as a benchmark.
 }

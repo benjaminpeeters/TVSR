@@ -44,6 +44,8 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
+          # PR B will remove --no-examples once every export has a runnable
+          # \examples{} block; until then examples are skipped.
           args: 'c("--no-examples", "--no-manual")'
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
-          error-on: '"error"'
+          error-on: '"warning"'

@@ -11,7 +11,11 @@ loglikStaticAll2W <- function(Y,W1,W2,X=NULL, omegaRho=0, gamma=1, df=NULL, kern
 			for(i in 1: length(W)){
 				Wgamma[[i]] = gamma*W1[[i]] + (1-gamma)*W2[[i]]
 			}
-			loglikStaticAll(Y=Y,W=Wgamma,X=X, omegaRho=omegaRho, df=df, kernel=kernel, option=option, result=result)
+			# FIXME: historical call passed omegaRho / df, but loglikStaticAll
+			# lost those args in an earlier refactor. Kept as a no-op stub —
+			# loglikStaticAll2W is not wired into any export and needs a
+			# proper port from p2's functions.r before re-enabling. See TODO.md.
+			loglikStaticAll(Y=Y,W=Wgamma,X=X, kernel=kernel, option=option, result=result)
 			
 		}else{stop("Error in definition of W1 or W2 matrices: W1 or W2 is a list but elements are not matrices or of not good dimensions");}
 	
@@ -107,7 +111,7 @@ SRllstatic2W_2 <- function(Y, w1, w2, X=NULL,  kernel='uniform', option='estimat
 	
 	if(verbose){
 		cat("###############################################################\n")
-		cat("N° countries: ", nrow(Y),"	Time periods:", ncol(Y),"\n")
+		cat("N countries: ", nrow(Y),"	Time periods:", ncol(Y),"\n")
 	}
 	
 	# ----------------------------------------------------------------------
